@@ -1,0 +1,8 @@
+colorlog
+fastapi
+httpx
+pydantic
+python-dotenv
+Requests
+starlette
+uvicorn

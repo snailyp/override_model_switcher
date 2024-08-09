@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.routes import initialize_allowed_models, router
 import uvicorn
 from starlette.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 
 @asynccontextmanager
@@ -21,7 +22,7 @@ app.add_middleware(
     allow_methods=["*"],  # 允许所有方法
     allow_headers=["*"],  # 允许所有头
 )
-
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

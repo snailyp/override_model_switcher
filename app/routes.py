@@ -1,9 +1,9 @@
 from http.client import HTTPException
 from fastapi import APIRouter, Request
 import os
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel
-
+from fastapi.templating import Jinja2Templates
 from app.log_config import setup_logger
 from app.openai import fetch_models, get_allowed_models
 from app.openai import base_url
@@ -18,6 +18,7 @@ logger = setup_logger("routes")
 allowed_models = []
 router = APIRouter()
 
+
 async def initialize_allowed_models():
     global allowed_models
     allowed_models = await get_allowed_models()
@@ -27,9 +28,15 @@ class OverrideModelRequest(BaseModel):
     model: str
 
 
-@router.get("/")
-async def read_root():
-    return {"hello": "world!"}
+templates = Jinja2Templates(directory="templates")
+
+
+@router.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    models = allowed_models
+    return templates.TemplateResponse(
+        "index.html", {"request": request, "models": models}
+    )
 
 
 @router.get("/v1/models")
@@ -58,7 +65,7 @@ async def chat_completions(request: Request):
         body = await request.body()
         if not body:
             raise HTTPException(status_code=400, detail="Request body is empty")
-        
+
         try:
             body = json.loads(body)
         except json.JSONDecodeError:
@@ -66,18 +73,22 @@ async def chat_completions(request: Request):
 
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         if override_model:
             body["model"] = override_model
 
         stream = body.get("stream", False)
+
         async def event_stream():
             try:
                 async with httpx.AsyncClient() as client:
                     async with client.stream(
-                        "POST", f"{base_url}/v1/chat/completions", json=body, headers=headers
+                        "POST",
+                        f"{base_url}/v1/chat/completions",
+                        json=body,
+                        headers=headers,
                     ) as response:
                         if response.status_code != 200:
                             logger.warning(
@@ -92,6 +103,7 @@ async def chat_completions(request: Request):
             except Exception as e:
                 logger.error(f"Error in event stream: {str(e)}")
                 yield f"data: {json.dumps({'error': 'Stream processing error'})}\n\n"
+
         if stream:
             return StreamingResponse(event_stream(), media_type="text/event-stream")
         else:
@@ -100,7 +112,7 @@ async def chat_completions(request: Request):
                 response = await client.post(
                     f"{base_url}/v1/chat/completions", json=body, headers=headers
                 )
-            
+
             return JSONResponse(
                 content=response.json(), status_code=response.status_code
             )
@@ -112,4 +124,3 @@ async def chat_completions(request: Request):
     except Exception as e:
         logger.error(f"Unexpected error in chat_completions: {str(e)}")
         raise HTTPException(status_code=500, detail="An unexpected error occurred")
-
