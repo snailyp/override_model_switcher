@@ -12,6 +12,7 @@
             margin: 0 auto;
             padding: 20px;
             background-color: #f0f0f0;
+            transition: all 0.3s ease;
         }
         h1 {
             color: #333;
@@ -19,10 +20,16 @@
         }
         select, button {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin: 10px 0;
             border: 1px solid #ddd;
             border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        select:focus, button:focus {
+            outline: none;
+            box-shadow: 0 0 5px rgba(33,150,243,0.5);
         }
         button {
             background-color: #4CAF50;
@@ -34,23 +41,50 @@
         button:hover {
             background-color: #45a049;
         }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
         #message {
             margin-top: 20px;
             padding: 10px;
-            background-color: #e7f3fe;
-            border-left: 6px solid #2196F3;
+            border-radius: 4px;
             display: none;
+            transition: all 0.3s ease;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            select, button {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
 <body>
     <h1>选择要切换的模型</h1>
-    <select id="modelSelect">
+    <select id="modelSelect" aria-label="选择模型">
         {% for model in models %}
             <option value="{{ model }}">{{ model }}</option>
         {% endfor %}
     </select>
     <button id="switchButton">切换模型</button>
-    <p id="message"></p>
+    <div class="loader" id="loader"></div>
+    <p id="message" role="alert"></p>
 </body>
 </html>

@@ -1,7 +1,8 @@
 from http.client import HTTPException
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 import os
 from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from app.log_config import setup_logger
@@ -11,12 +12,29 @@ from app.openai import api_key
 import httpx
 from fastapi import HTTPException
 import json
+from starlette.status import HTTP_403_FORBIDDEN
 
 
 override_model = os.getenv("OVERRIDE_MODEL")
 logger = setup_logger("routes")
 allowed_models = []
 router = APIRouter()
+# 创建 API 密钥头部验证器
+api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
+
+
+# 验证 API 密钥的函数
+async def verify_api_key(req_api_key: str = Depends(api_key_header)):
+    if req_api_key is None:
+        raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Missing API Key")
+
+    # 移除 "Bearer " 前缀（如果存在）
+    if req_api_key.startswith("Bearer "):
+        req_api_key = req_api_key[7:]
+
+    if req_api_key != api_key:
+        raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Invalid API Key")
+    return req_api_key
 
 
 async def initialize_allowed_models():
@@ -40,7 +58,7 @@ async def index(request: Request):
 
 
 @router.get("/v1/models")
-async def list_models():
+async def list_models(api_key: str = Depends(verify_api_key)):
     return await fetch_models()
 
 
@@ -60,7 +78,7 @@ async def switch_override_model(request: OverrideModelRequest):
 
 
 @router.post("/v1/chat/completions")
-async def chat_completions(request: Request):
+async def chat_completions(request: Request, api_key: str = Depends(verify_api_key)):
     try:
         body = await request.body()
         if not body:
@@ -98,7 +116,6 @@ async def chat_completions(request: Request):
                             return
                         async for line in response.aiter_lines():
                             if line:
-                                print(line)
                                 yield f"{line}\n\n"
             except Exception as e:
                 logger.error(f"Error in event stream: {str(e)}")
