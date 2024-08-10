@@ -61,6 +61,11 @@ async def index(request: Request):
     )
 
 
+@router.get("/health_check")
+async def health_check():
+    return {"status": "healthy", "message": "Service is running"}
+
+
 @router.get("/v1/models")
 async def list_models(api_key: str = Depends(verify_api_key)):
     return await fetch_models()
