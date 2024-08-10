@@ -82,10 +82,10 @@ python main.py
 
 ## API 端点
 
-- GET `/`: 可能提供 Web 界面的主页
+- GET `/`: 提供 Web 模型切换界面
 - GET `/v1/models`: 获取可用模型列表
 - POST `/switch/override_models`: 切换到指定的模型
-- POST `/v1/chat/completions`: 可能处理聊天补全
+- POST `/v1/chat/completions`: 处理聊天补全
 
 ## 前端
 

@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 显示成功消息
             showMessage(data['message'], 'success');
+            // 保存选择的模型到 localStorage
+            localStorage.setItem('selectedModel', selectedModel);
         } catch (error) {
             console.error('Error:', error);
             showMessage('发生错误，请稍后重试。', 'error');
@@ -41,6 +43,12 @@ document.addEventListener('DOMContentLoaded', function() {
             loader.style.display = 'none';
         }
     };
+
+    // 从 localStorage 加载上次选择的模型
+    const savedModel = localStorage.getItem('selectedModel');
+    if (savedModel) {
+        modelSelect.value = savedModel;
+    }
 
     function showMessage(text, type) {
         messageElement.textContent = text;

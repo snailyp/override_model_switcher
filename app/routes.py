@@ -16,6 +16,8 @@ from starlette.status import HTTP_403_FORBIDDEN
 
 
 override_model = os.getenv("OVERRIDE_MODEL")
+# 添加一个新的变量来存储选择的模型
+selected_model = os.getenv("OVERRIDE_MODEL", "")
 logger = setup_logger("routes")
 allowed_models = []
 router = APIRouter()
@@ -51,9 +53,11 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
+    global selected_model
     models = allowed_models
     return templates.TemplateResponse(
-        "index.html", {"request": request, "models": models}
+        "index.html",
+        {"request": request, "models": models, "selected_model": selected_model},
     )
 
 
@@ -73,6 +77,10 @@ async def switch_override_model(request: OverrideModelRequest):
         )
 
     override_model = request.model
+    selected_model = request.model  # 保存选择的模型
+    logger.info(f"OVERRIDE_MODEL switched to: {override_model}")
+    return {"message": f"OVERRIDE_MODEL successfully switched to {override_model}"}
+
     logger.info(f"OVERRIDE_MODEL switched to: {override_model}")
     return {"message": f"OVERRIDE_MODEL successfully switched to {override_model}"}
 

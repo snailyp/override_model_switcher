@@ -80,7 +80,7 @@
     <h1>选择要切换的模型</h1>
     <select id="modelSelect" aria-label="选择模型">
         {% for model in models %}
-            <option value="{{ model }}">{{ model }}</option>
+            <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>
         {% endfor %}
     </select>
     <button id="switchButton">切换模型</button>
