@@ -1,128 +1,169 @@
 <!DOCTYPE html>
 <html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>API 配置和模型切换工具</title>
     <script src="/static/script.js" defer></script>
     <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f0f0f0;
+        transition: all 0.3s ease;
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+      select,
+      button {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+      }
+
+      input {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+      }
+
+      textarea {
+        width: 100%;
+      }
+      select:focus,
+      button:focus {
+        outline: none;
+        box-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+      #message {
+        margin-top: 20px;
+        padding: 10px;
+        border-radius: 4px;
+        display: none;
+        transition: all 0.3s ease;
+      }
+      .loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        display: none;
+        margin: 10px auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      @media (max-width: 600px) {
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f0f0f0;
-            transition: all 0.3s ease;
+          padding: 10px;
         }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        select, button {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-        select:focus, button:focus {
-            outline: none;
-            box-shadow: 0 0 5px rgba(33,150,243,0.5);
-        }
+        select,
         button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s;
+          font-size: 14px;
         }
-        button:hover {
-            background-color: #45a049;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        #message {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-            transition: all 0.3s ease;
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: none;
-            margin: 10px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            select, button {
-                font-size: 14px;
-            }
-        }
-        .config-form {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #fff;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .config-form input, .config-form button {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box; /* 确保padding和border包含在宽度内 */
-        }
-        .config-form input {
-            width: 100%;
-        }
-        .channel-select {
-            margin-bottom: 20px;
-        }
+      }
+      .config-form {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #fff;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .config-form input,
+      .config-form button {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        box-sizing: border-box; /* 确保padding和border包含在宽度内 */
+      }
+      .config-form input {
+        width: 100%;
+      }
+      .channel-select {
+        margin-bottom: 20px;
+      }
     </style>
-</head>
-<body>
-    <h1>API 配置和模型切换工具</h1>
+  </head>
+  <body>
+    <input type="hidden" id="currentChannel" value="{{ current_channel }}">
+    <input type="hidden" id="currentModel" value="{{ current_model }}">
+    <h1>OpenAI API 配置管理</h1>
+    <!-- 单个渠道上传 -->
     <div class="config-form">
-        <h2>上传 API 配置</h2>
-        <input type="text" id="channelName" placeholder="渠道名称" required>
-        <input type="text" id="baseUrl" placeholder="Base URL" required>
-        <input type="text" id="apiKey" placeholder="API Key" required>
-        <button id="uploadConfigButton">上传配置</button>
+      <h2>上传 API 配置</h2>
+      <input type="text" id="channelName" placeholder="渠道名称" required />
+      <input type="text" id="baseUrl" placeholder="Base URL" required />
+      <input type="text" id="apiKey" placeholder="API Key" required />
+      <button id="uploadConfigButton">上传配置</button>
     </div>
 
-    <div class="channel-select">
-        <h2>选择渠道</h2>
-        <select id="channelSelect" aria-label="选择渠道">
-            <!-- 渠道选项将通过 JavaScript 动态添加 -->
-        </select>
-        <button id="switchChannelButton">切换渠道</button>
+    <!-- 新增：批量上传渠道 -->
+    <div class="config-form">
+      <h2>批量上传渠道配置</h2>
+      <textarea
+        id="bulkChannelConfig"
+        rows="5"
+        placeholder=
+'[
+    {"channel_name": "channel1", "base_url": "url1", "api_key": "key1"},
+    {"channel_name": "channel2", "base_url": "url2", "api_key": "key2"}
+]'
+      ></textarea>
+      <button id="bulkUploadButton">批量上传</button>
     </div>
 
-    <h2>选择要切换的模型</h2>
-    <select id="modelSelect" aria-label="选择模型">
-        <!-- 模型选项将通过 JavaScript 动态添加 -->
-    </select>
-    <button id="switchButton">切换模型</button>
-    
-    <div class="loader" id="loader"></div>
-    <p id="message" role="alert"></p>
-</body>
+    <!-- 渠道选择和删除 -->
+    <div class="config-form">
+      <h2>渠道管理</h2>
+      <select id="channelSelect"></select>
+      <button id="switchChannelButton">切换渠道</button>
+      <button id="deleteChannelButton">删除渠道</button>
+    </div>
+
+    <!-- 模型选择 -->
+    <div class="config-form">
+      <h2>模型选择</h2>
+      <select id="modelSelect"></select>
+      <button id="switchButton">切换模型</button>
+    </div>
+
+    <div id="message" style="display: none"></div>
+    <div id="loader" style="display: none">Loading...</div>
+  </body>
 </html>

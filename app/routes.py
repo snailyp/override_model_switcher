@@ -20,8 +20,6 @@ from typing import List
 from app.openai import config
 
 override_model = get_current_model()
-# 添加一个新的变量来存储选择的模型
-selected_model = get_current_model()
 logger = setup_logger("routes")
 allowed_models = []
 router = APIRouter()
@@ -32,6 +30,12 @@ templates = Jinja2Templates(directory="templates")
 
 class OverrideModelRequest(BaseModel):
     model: str
+
+
+class ChannelInfo(BaseModel):
+    channel_name: str
+    base_url: str
+    api_key: str
 
 
 async def switch_api_channel(channel_name):
@@ -69,11 +73,15 @@ async def initialize_allowed_models():
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    global override_model
     models = allowed_models
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "models": models, "override_model": override_model},
+        {
+            "request": request,
+            "models": models,
+            "current_model": config()["current_model"],
+            "current_channel": config()["current_channel"],
+        },
     )
 
 
@@ -87,10 +95,10 @@ async def list_models():
     return await fetch_models()
 
 
-@router.post("/switch/override_models")
+@router.post("/switch/override_model")
 async def switch_override_model(request: OverrideModelRequest):
     global override_model
-    
+
     if request.model not in allowed_models:
         raise HTTPException(
             status_code=400,
@@ -98,6 +106,12 @@ async def switch_override_model(request: OverrideModelRequest):
         )
 
     override_model = request.model
+    with open("config.json", "r+") as f:
+        config = json.load(f)
+        config["current_model"] = request.model
+        f.seek(0)
+        json.dump(config, f, indent=2)
+        f.truncate()
     logger.info(f"OVERRIDE_MODEL switched to: {override_model}")
     return {"message": f"OVERRIDE_MODEL successfully switched to {override_model}"}
 
@@ -182,6 +196,26 @@ async def get_channel_config(channel_name: str):
     raise HTTPException(status_code=404, detail="Channel not found")
 
 
+@router.delete("/delete_channel/{channel_name}")
+async def delete_channel(channel_name: str):
+    current_config = config()
+    if channel_name not in current_config["channels"]:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    if channel_name == current_config["current_channel"]:
+        raise HTTPException(
+            status_code=400, detail="Cannot delete the current active channel"
+        )
+
+    del current_config["channels"][channel_name]
+
+    # 保存更新后的配置
+    with open("config.json", "w") as f:
+        json.dump(current_config, f, indent=2)
+
+    return {"message": f"Channel {channel_name} deleted successfully"}
+
+
 @router.post("/add_channel")
 async def add_channel(request: Request):
     data = await request.json()
@@ -195,7 +229,10 @@ async def add_channel(request: Request):
     if channel_name in config()["channels"]:
         raise HTTPException(status_code=400, detail="Channel already exists")
     current_config = config()
-    current_config["channels"][channel_name] = {"base_url": base_url, "api_key": api_key}
+    current_config["channels"][channel_name] = {
+        "base_url": base_url,
+        "api_key": api_key,
+    }
 
     # 保存更新后的配置
     with open("config.json", "w") as f:
@@ -204,6 +241,33 @@ async def add_channel(request: Request):
         f.truncate()
 
     return {"message": f"Channel {channel_name} added successfully"}
+
+
+@router.post("/bulk_add_channels")
+async def bulk_add_channels(channels: List[ChannelInfo]):
+    current_config = config()
+    added_channels = []
+    existing_channels = []
+
+    for channel in channels:
+        if channel.channel_name not in current_config["channels"]:
+            current_config["channels"][channel.channel_name] = {
+                "base_url": channel.base_url,
+                "api_key": channel.api_key,
+            }
+            added_channels.append(channel.channel_name)
+        else:
+            existing_channels.append(channel.channel_name)
+
+    # 保存更新后的配置
+    with open("config.json", "w") as f:
+        json.dump(current_config, f, indent=2)
+
+    return {
+        "message": f"Added {len(added_channels)} channels successfully",
+        "added_channels": added_channels,
+        "existing_channels": existing_channels,
+    }
 
 
 @router.post("/switch_channel")
