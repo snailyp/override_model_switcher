@@ -118,6 +118,14 @@
       .channel-select {
         margin-bottom: 20px;
       }
+      .button-group {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .button-group button {
+        flex: 1;
+      }
     </style>
   </head>
   <body>
@@ -130,7 +138,10 @@
       <input type="text" id="channelName" placeholder="渠道名称" required />
       <input type="text" id="baseUrl" placeholder="Base URL" required />
       <input type="text" id="apiKey" placeholder="API Key" required />
-      <button id="uploadConfigButton">上传配置</button>
+      <div class="button-group">
+        <button id="uploadConfigButton">上传配置</button>
+        <button id="clearConfigButton">清空配置</button>
+      </div>
     </div>
 
     <!-- 新增：批量上传渠道 -->
@@ -145,15 +156,20 @@
     {"channel_name": "channel2", "base_url": "url2", "api_key": "key2"}
 ]'
       ></textarea>
-      <button id="bulkUploadButton">批量上传</button>
+      <div class="button-group">
+        <button id="bulkUploadButton">批量上传</button>
+        <button id="clearBulkUploadButton">清空配置</button>
+      </div>
     </div>
 
     <!-- 渠道选择和删除 -->
     <div class="config-form">
       <h2>渠道管理</h2>
       <select id="channelSelect"></select>
-      <button id="switchChannelButton">切换渠道</button>
-      <button id="deleteChannelButton">删除渠道</button>
+      <div class="button-group">
+        <button id="switchChannelButton">切换渠道</button>
+        <button id="deleteChannelButton">删除渠道</button>
+      </div>
     </div>
 
     <!-- 模型选择 -->

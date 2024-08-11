@@ -11,6 +11,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const modelSelect = document.getElementById("modelSelect");
   const channelSelect = document.getElementById("channelSelect");
 
+  const clearConfigButton = document.getElementById("clearConfigButton");
+  const clearBulkUploadButton = document.getElementById("clearBulkUploadButton");
+
   // 初始化：获取渠道列表和模型列表
   fetchChannels().then(() => {
     if (currentChannel) {
@@ -29,7 +32,18 @@ document.addEventListener("DOMContentLoaded", function () {
   switchChannelButton.addEventListener("click", switchChannel);
   deleteChannelButton.addEventListener("click", deleteChannel);
   switchButton.addEventListener("click", switchModel);
+  clearConfigButton.addEventListener("click", clearConfig);
+  clearBulkUploadButton.addEventListener("click", clearBulkUpload);
 
+  function clearConfig() {
+    document.getElementById("channelName").value = "";
+    document.getElementById("baseUrl").value = "";
+    document.getElementById("apiKey").value = "";
+  }
+
+  function clearBulkUpload() {
+    document.getElementById("bulkChannelConfig").value = "";
+  }
   async function uploadConfig() {
     const channelName = document.getElementById("channelName").value;
     const baseUrl = document.getElementById("baseUrl").value;
