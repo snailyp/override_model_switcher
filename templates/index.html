@@ -6,78 +6,110 @@
     <title>API 配置和模型切换工具</title>
     <script src="/static/script.js" defer></script>
     <style>
+      :root {
+        --primary-color: #4caf50;
+        --secondary-color: #2196f3;
+        --background-color: #f5f5f5;
+        --card-background: #ffffff;
+        --text-color: #333333;
+        --border-color: #e0e0e0;
+      }
+
       body {
-        font-family: Arial, sans-serif;
-        max-width: 600px;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 800px;
         margin: 0 auto;
         padding: 20px;
-        background-color: #f0f0f0;
-        transition: all 0.3s ease;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        line-height: 1.6;
       }
-      h1 {
-        color: #333;
+
+      h1,
+      h2 {
+        color: var(--primary-color);
         text-align: center;
+        margin-bottom: 30px;
       }
+
+      .config-form {
+        background-color: var(--card-background);
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 30px;
+      }
+
+      input,
       select,
+      textarea,
       button {
         width: 100%;
         padding: 12px;
         margin: 10px 0;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         font-size: 16px;
         transition: all 0.3s ease;
+        box-sizing: border-box;
       }
 
-      input {
-        width: 100%;
-        padding: 12px;
-        margin: 10px 0;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 16px;
-        transition: all 0.3s ease;
-      }
-
-      textarea {
-        width: 100%;
-      }
+      input:focus,
       select:focus,
-      button:focus {
+      textarea:focus {
         outline: none;
         box-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
       }
+
       button {
-        background-color: #4caf50;
+        background-color: var(--primary-color);
         color: white;
         border: none;
         cursor: pointer;
+        font-weight: bold;
         transition: background-color 0.3s;
       }
+
       button:hover {
         background-color: #45a049;
       }
+
       button:disabled {
         background-color: #cccccc;
         cursor: not-allowed;
       }
+
+      .button-group {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .button-group button {
+        flex: 1;
+      }
+
       #message {
         margin-top: 20px;
-        padding: 10px;
+        padding: 15px;
         border-radius: 4px;
         display: none;
         transition: all 0.3s ease;
+        text-align: center;
+        font-weight: bold;
       }
+
       .loader {
         border: 4px solid #f3f3f3;
-        border-top: 4px solid #3498db;
+        border-top: 4px solid var(--secondary-color);
         border-radius: 50%;
-        width: 20px;
-        height: 20px;
+        width: 30px;
+        height: 30px;
         animation: spin 1s linear infinite;
         display: none;
-        margin: 10px auto;
+        margin: 20px auto;
       }
+
       @keyframes spin {
         0% {
           transform: rotate(0deg);
@@ -86,100 +118,134 @@
           transform: rotate(360deg);
         }
       }
+
       @media (max-width: 600px) {
         body {
           padding: 10px;
         }
-        select,
-        button {
-          font-size: 14px;
+        .config-form {
+          padding: 15px;
         }
       }
       .config-form {
-        margin-bottom: 20px;
-        padding: 15px;
-        background-color: #fff;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        position: relative;
+        padding-top: 40px; /* Add space for the toggle button */
       }
-      .config-form input,
-      .config-form button {
-        width: 100%;
-        padding: 12px;
-        margin: 10px 0;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 16px;
-        box-sizing: border-box; /* 确保padding和border包含在宽度内 */
-      }
-      .config-form input {
-        width: 100%;
-      }
-      .channel-select {
-        margin-bottom: 20px;
-      }
-      .button-group {
+
+      .form-header {
         display: flex;
         justify-content: space-between;
-        gap: 10px;
+        align-items: center;
+        margin-bottom: 15px;
       }
-      .button-group button {
-        flex: 1;
+
+      .toggle-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: auto;
+        opacity: 0.8;
+      }
+
+      .toggle-btn:hover {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+
+      .config-form-content {
+        display: none;
+      }
+
+      .config-form.expanded .config-form-content {
+        display: block;
+      }
+
+      .config-form.expanded .toggle-btn::after {
+        content: " ▲";
+      }
+
+      .config-form:not(.expanded) .toggle-btn::after {
+        content: " ▼";
       }
     </style>
   </head>
   <body>
-    <input type="hidden" id="currentChannel" value="{{ current_channel }}">
-    <input type="hidden" id="currentModel" value="{{ current_model }}">
+    <input type="hidden" id="currentChannel" value="{{ current_channel }}" />
+    <input type="hidden" id="currentModel" value="{{ current_model }}" />
+
     <h1>OpenAI API 配置管理</h1>
-    <!-- 单个渠道上传 -->
+
     <div class="config-form">
-      <h2>上传 API 配置</h2>
-      <input type="text" id="channelName" placeholder="渠道名称" required />
-      <input type="text" id="baseUrl" placeholder="Base URL" required />
-      <input type="text" id="apiKey" placeholder="API Key" required />
-      <div class="button-group">
-        <button id="uploadConfigButton">上传配置</button>
-        <button id="clearConfigButton">清空配置</button>
+      <div class="form-header">
+        <h2>上传 API 配置</h2>
+        <button class="toggle-btn"></button>
+      </div>
+      <div class="config-form-content">
+        <input type="text" id="channelName" placeholder="渠道名称" required />
+        <input type="text" id="baseUrl" placeholder="Base URL" required />
+        <input type="text" id="apiKey" placeholder="API Key" required />
+        <div class="button-group">
+          <button id="uploadConfigButton">上传配置</button>
+          <button id="clearConfigButton">清空配置</button>
+        </div>
       </div>
     </div>
 
-    <!-- 新增：批量上传渠道 -->
     <div class="config-form">
-      <h2>批量上传渠道配置</h2>
-      <textarea
-        id="bulkChannelConfig"
-        rows="5"
-        placeholder=
-'[
-    {"channel_name": "channel1", "base_url": "url1", "api_key": "key1"},
-    {"channel_name": "channel2", "base_url": "url2", "api_key": "key2"}
+      <div class="form-header">
+        <h2>批量上传渠道配置</h2>
+        <button class="toggle-btn"></button>
+      </div>
+      <div class="config-form-content">
+        <textarea
+          id="bulkChannelConfig"
+          rows="5"
+          placeholder='[
+      {"channel_name": "channel1", "base_url": "url1", "api_key": "key1"},
+      {"channel_name": "channel2", "base_url": "url2", "api_key": "key2"}
 ]'
-      ></textarea>
-      <div class="button-group">
-        <button id="bulkUploadButton">批量上传</button>
-        <button id="clearBulkUploadButton">清空配置</button>
+        ></textarea>
+        <div class="button-group">
+          <button id="bulkUploadButton">批量上传</button>
+          <button id="clearBulkUploadButton">清空配置</button>
+        </div>
       </div>
     </div>
 
-    <!-- 渠道选择和删除 -->
     <div class="config-form">
-      <h2>渠道管理</h2>
-      <select id="channelSelect"></select>
-      <div class="button-group">
-        <button id="switchChannelButton">切换渠道</button>
-        <button id="deleteChannelButton">删除渠道</button>
+      <div class="form-header">
+        <h2>渠道管理</h2>
+        <button class="toggle-btn"></button>
+      </div>
+      <div class="config-form-content">
+        <select id="channelSelect"></select>
+        <div class="button-group">
+          <button id="switchChannelButton">切换渠道</button>
+          <button id="deleteChannelButton">删除渠道</button>
+        </div>
       </div>
     </div>
 
-    <!-- 模型选择 -->
     <div class="config-form">
-      <h2>模型选择</h2>
-      <select id="modelSelect"></select>
-      <button id="switchButton">切换模型</button>
+      <div class="form-header">
+        <h2>模型选择</h2>
+        <button class="toggle-btn"></button>
+      </div>
+      <div class="config-form-content">
+        <select id="modelSelect"></select>
+        <button id="switchButton">切换模型</button>
+      </div>
     </div>
 
     <div id="message" style="display: none"></div>
-    <div id="loader" style="display: none">Loading...</div>
+    <div id="loader" class="loader" style="display: none"></div>
   </body>
 </html>

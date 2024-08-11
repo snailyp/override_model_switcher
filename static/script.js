@@ -10,9 +10,12 @@ document.addEventListener("DOMContentLoaded", function () {
   const loader = document.getElementById("loader");
   const modelSelect = document.getElementById("modelSelect");
   const channelSelect = document.getElementById("channelSelect");
+  const toggleBtns = document.querySelectorAll(".toggle-btn");
 
   const clearConfigButton = document.getElementById("clearConfigButton");
-  const clearBulkUploadButton = document.getElementById("clearBulkUploadButton");
+  const clearBulkUploadButton = document.getElementById(
+    "clearBulkUploadButton"
+  );
 
   // 初始化：获取渠道列表和模型列表
   fetchChannels().then(() => {
@@ -238,4 +241,11 @@ document.addEventListener("DOMContentLoaded", function () {
   function hideLoader() {
     loader.style.display = "none";
   }
+
+  toggleBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const configForm = this.closest('.config-form');
+      configForm.classList.toggle('expanded');
+    });
+  });
 });
