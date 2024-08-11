@@ -5,24 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>API 配置和模型切换工具</title>
     <script src="/static/script.js" defer></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    />
     <style>
       :root {
-        --primary-color: #4caf50;
-        --secondary-color: #2196f3;
-        --background-color: #f5f5f5;
+        --primary-color: #3498db;
+        --secondary-color: #2ecc71;
+        --background-color: #ecf0f1;
         --card-background: #ffffff;
-        --text-color: #333333;
-        --border-color: #e0e0e0;
+        --text-color: #34495e;
+        --border-color: #bdc3c7;
+        --header-color: #2c3e50;
       }
 
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
+        font-family: "Roboto", Arial, sans-serif;
+        margin: 0;
+        padding: 0;
         background-color: var(--background-color);
         color: var(--text-color);
         line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      header {
+        background-color: var(--header-color);
+        color: white;
+        padding: 1rem 0;
+        text-align: center;
+      }
+
+      nav {
+        background-color: var(--primary-color);
+        padding: 0.5rem 0;
+      }
+
+      nav ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      nav ul li {
+        margin: 0 1rem;
+      }
+
+      nav ul li a {
+        color: white;
+        text-decoration: none;
       }
 
       h1,
@@ -32,12 +71,28 @@
         margin-bottom: 30px;
       }
 
-      .config-form {
+      .card {
         background-color: var(--card-background);
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         padding: 20px;
         margin-bottom: 30px;
+        transition: transform 0.3s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .card-header h2 {
+        margin: 0;
       }
 
       input,
@@ -58,7 +113,7 @@
       select:focus,
       textarea:focus {
         outline: none;
-        box-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
+        box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
       }
 
       button {
@@ -71,11 +126,11 @@
       }
 
       button:hover {
-        background-color: #45a049;
+        background-color: #2980b9;
       }
 
       button:disabled {
-        background-color: #cccccc;
+        background-color: #bdc3c7;
         cursor: not-allowed;
       }
 
@@ -119,133 +174,107 @@
         }
       }
 
-      @media (max-width: 600px) {
-        body {
+      footer {
+        background-color: var(--header-color);
+        color: white;
+        text-align: center;
+        padding: 1rem 0;
+        margin-top: 2rem;
+      }
+
+      @media (max-width: 768px) {
+        .container {
           padding: 10px;
         }
-        .config-form {
+        .card {
           padding: 15px;
         }
-      }
-      .config-form {
-        position: relative;
-        padding-top: 40px; /* Add space for the toggle button */
-      }
-
-      .form-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-      }
-
-      .toggle-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background-color: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 12px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        width: auto;
-        opacity: 0.8;
-      }
-
-      .toggle-btn:hover {
-        opacity: 1;
-        transform: scale(1.05);
-      }
-
-      .config-form-content {
-        display: none;
-      }
-
-      .config-form.expanded .config-form-content {
-        display: block;
-      }
-
-      .config-form.expanded .toggle-btn::after {
-        content: " ▲";
-      }
-
-      .config-form:not(.expanded) .toggle-btn::after {
-        content: " ▼";
       }
     </style>
   </head>
   <body>
-    <input type="hidden" id="currentChannel" value="{{ current_channel }}" />
-    <input type="hidden" id="currentModel" value="{{ current_model }}" />
+    <header>
+      <h1>OpenAI API 配置管理</h1>
+    </header>
+    <nav>
+      <ul>
+        <li><a href="#upload">上传配置</a></li>
+        <li><a href="#bulk-upload">批量上传</a></li>
+        <li><a href="#channel-management">渠道管理</a></li>
+        <li><a href="#model-selection">模型选择</a></li>
+      </ul>
+    </nav>
+    <div class="container">
+      <input type="hidden" id="currentChannel" value="{{ current_channel }}" />
+      <input type="hidden" id="currentModel" value="{{ current_model }}" />
 
-    <h1>OpenAI API 配置管理</h1>
-
-    <div class="config-form">
-      <div class="form-header">
-        <h2>上传 API 配置</h2>
-        <button class="toggle-btn"></button>
-      </div>
-      <div class="config-form-content">
+      <div id="upload" class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-upload"></i> 上传 API 配置</h2>
+        </div>
         <input type="text" id="channelName" placeholder="渠道名称" required />
         <input type="text" id="baseUrl" placeholder="Base URL" required />
         <input type="text" id="apiKey" placeholder="API Key" required />
         <div class="button-group">
-          <button id="uploadConfigButton">上传配置</button>
-          <button id="clearConfigButton">清空配置</button>
+          <button id="uploadConfigButton">
+            <i class="fas fa-cloud-upload-alt"></i> 上传配置
+          </button>
+          <button id="clearConfigButton">
+            <i class="fas fa-trash-alt"></i> 清空配置
+          </button>
         </div>
       </div>
-    </div>
 
-    <div class="config-form">
-      <div class="form-header">
-        <h2>批量上传渠道配置</h2>
-        <button class="toggle-btn"></button>
-      </div>
-      <div class="config-form-content">
+      <div id="bulk-upload" class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-file-import"></i> 批量上传渠道配置</h2>
+        </div>
         <textarea
           id="bulkChannelConfig"
           rows="5"
           placeholder='[
-      {"channel_name": "channel1", "base_url": "url1", "api_key": "key1"},
-      {"channel_name": "channel2", "base_url": "url2", "api_key": "key2"}
+  {"channel_name": "channel1", "base_url": "url1", "api_key": "key1"},
+  {"channel_name": "channel2", "base_url": "url2", "api_key": "key2"}
 ]'
         ></textarea>
         <div class="button-group">
-          <button id="bulkUploadButton">批量上传</button>
-          <button id="clearBulkUploadButton">清空配置</button>
+          <button id="bulkUploadButton">
+            <i class="fas fa-upload"></i> 批量上传
+          </button>
+          <button id="clearBulkUploadButton">
+            <i class="fas fa-eraser"></i> 清空配置
+          </button>
         </div>
       </div>
-    </div>
 
-    <div class="config-form">
-      <div class="form-header">
-        <h2>渠道管理</h2>
-        <button class="toggle-btn"></button>
-      </div>
-      <div class="config-form-content">
+      <div id="channel-management" class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-cogs"></i> 渠道管理</h2>
+        </div>
         <select id="channelSelect"></select>
         <div class="button-group">
-          <button id="switchChannelButton">切换渠道</button>
-          <button id="deleteChannelButton">删除渠道</button>
+          <button id="switchChannelButton">
+            <i class="fas fa-exchange-alt"></i> 切换渠道
+          </button>
+          <button id="deleteChannelButton">
+            <i class="fas fa-trash"></i> 删除渠道
+          </button>
         </div>
       </div>
-    </div>
 
-    <div class="config-form">
-      <div class="form-header">
-        <h2>模型选择</h2>
-        <button class="toggle-btn"></button>
-      </div>
-      <div class="config-form-content">
+      <div id="model-selection" class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-robot"></i> 模型选择</h2>
+        </div>
         <select id="modelSelect"></select>
-        <button id="switchButton">切换模型</button>
+        <button id="switchButton"><i class="fas fa-sync"></i> 切换模型</button>
       </div>
-    </div>
 
-    <div id="message" style="display: none"></div>
-    <div id="loader" class="loader" style="display: none"></div>
+      <div id="message" style="display: none"></div>
+      <div id="loader" class="loader" style="display: none"></div>
+    </div>
+    <footer>
+      <p>&copy; 2024 OpenAI API 配置管理工具. snaily保留所有权利.</p>
+    </footer>
   </body>
 </html>
