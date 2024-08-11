@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>模型切换工具</title>
+    <title>API 配置和模型切换工具</title>
     <script src="/static/script.js" defer></script>
     <style>
         body {
@@ -74,16 +74,54 @@
                 font-size: 14px;
             }
         }
+        .config-form {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .config-form input, .config-form button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box; /* 确保padding和border包含在宽度内 */
+        }
+        .config-form input {
+            width: 100%;
+        }
+        .channel-select {
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
-    <h1>选择要切换的模型</h1>
+    <h1>API 配置和模型切换工具</h1>
+    <div class="config-form">
+        <h2>上传 API 配置</h2>
+        <input type="text" id="channelName" placeholder="渠道名称" required>
+        <input type="text" id="baseUrl" placeholder="Base URL" required>
+        <input type="text" id="apiKey" placeholder="API Key" required>
+        <button id="uploadConfigButton">上传配置</button>
+    </div>
+
+    <div class="channel-select">
+        <h2>选择渠道</h2>
+        <select id="channelSelect" aria-label="选择渠道">
+            <!-- 渠道选项将通过 JavaScript 动态添加 -->
+        </select>
+        <button id="switchChannelButton">切换渠道</button>
+    </div>
+
+    <h2>选择要切换的模型</h2>
     <select id="modelSelect" aria-label="选择模型">
-        {% for model in models %}
-            <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>
-        {% endfor %}
+        <!-- 模型选项将通过 JavaScript 动态添加 -->
     </select>
     <button id="switchButton">切换模型</button>
+    
     <div class="loader" id="loader"></div>
     <p id="message" role="alert"></p>
 </body>

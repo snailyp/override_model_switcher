@@ -1,28 +1,51 @@
 from http.client import HTTPException
 from fastapi import APIRouter, Request, Depends
-import os
 from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from app.log_config import setup_logger
-from app.openai import fetch_models, get_allowed_models
-from app.openai import base_url
-from app.openai import api_key
+from app.openai import (
+    fetch_models,
+    get_allowed_models,
+    get_api_key,
+    get_current_config,
+    get_current_model,
+)
 import httpx
 from fastapi import HTTPException
 import json
 from starlette.status import HTTP_403_FORBIDDEN
+from typing import List
+from app.openai import config
 
-
-override_model = os.getenv("OVERRIDE_MODEL")
+override_model = get_current_model()
 # 添加一个新的变量来存储选择的模型
-selected_model = os.getenv("OVERRIDE_MODEL", "")
+selected_model = get_current_model()
 logger = setup_logger("routes")
 allowed_models = []
 router = APIRouter()
 # 创建 API 密钥头部验证器
 api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
+templates = Jinja2Templates(directory="templates")
+
+
+class OverrideModelRequest(BaseModel):
+    model: str
+
+
+async def switch_api_channel(channel_name):
+    global allowed_models
+    with open("config.json", "r+") as f:
+        config = json.load(f)
+        if channel_name in config["channels"]:
+            config["current_channel"] = channel_name
+            f.seek(0)
+            json.dump(config, f, indent=2)
+            f.truncate()
+            allowed_models = await get_allowed_models()
+            return True
+    return False
 
 
 # 验证 API 密钥的函数
@@ -34,9 +57,9 @@ async def verify_api_key(req_api_key: str = Depends(api_key_header)):
     if req_api_key.startswith("Bearer "):
         req_api_key = req_api_key[7:]
 
-    if req_api_key != api_key:
+    if req_api_key != get_api_key():
         raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Invalid API Key")
-    return req_api_key
+    return get_current_config()["api_key"]
 
 
 async def initialize_allowed_models():
@@ -44,20 +67,13 @@ async def initialize_allowed_models():
     allowed_models = await get_allowed_models()
 
 
-class OverrideModelRequest(BaseModel):
-    model: str
-
-
-templates = Jinja2Templates(directory="templates")
-
-
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    global selected_model
+    global override_model
     models = allowed_models
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "models": models, "selected_model": selected_model},
+        {"request": request, "models": models, "override_model": override_model},
     )
 
 
@@ -67,14 +83,14 @@ async def health_check():
 
 
 @router.get("/v1/models")
-async def list_models(api_key: str = Depends(verify_api_key)):
+async def list_models():
     return await fetch_models()
 
 
 @router.post("/switch/override_models")
 async def switch_override_model(request: OverrideModelRequest):
     global override_model
-
+    
     if request.model not in allowed_models:
         raise HTTPException(
             status_code=400,
@@ -82,10 +98,6 @@ async def switch_override_model(request: OverrideModelRequest):
         )
 
     override_model = request.model
-    selected_model = request.model  # 保存选择的模型
-    logger.info(f"OVERRIDE_MODEL switched to: {override_model}")
-    return {"message": f"OVERRIDE_MODEL successfully switched to {override_model}"}
-
     logger.info(f"OVERRIDE_MODEL switched to: {override_model}")
     return {"message": f"OVERRIDE_MODEL successfully switched to {override_model}"}
 
@@ -117,7 +129,7 @@ async def chat_completions(request: Request, api_key: str = Depends(verify_api_k
                 async with httpx.AsyncClient() as client:
                     async with client.stream(
                         "POST",
-                        f"{base_url}/v1/chat/completions",
+                        f"{get_current_config()['base_url']}/v1/chat/completions",
                         json=body,
                         headers=headers,
                     ) as response:
@@ -140,7 +152,9 @@ async def chat_completions(request: Request, api_key: str = Depends(verify_api_k
             # 非流式处理逻辑
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{base_url}/v1/chat/completions", json=body, headers=headers
+                    f"{get_current_config()['base_url']}/v1/chat/completions",
+                    json=body,
+                    headers=headers,
                 )
 
             return JSONResponse(
@@ -154,3 +168,53 @@ async def chat_completions(request: Request, api_key: str = Depends(verify_api_k
     except Exception as e:
         logger.error(f"Unexpected error in chat_completions: {str(e)}")
         raise HTTPException(status_code=500, detail="An unexpected error occurred")
+
+
+@router.get("/get_channels", response_model=List[str])
+async def get_channels():
+    return list(config()["channels"].keys())
+
+
+@router.get("/get_channel_config/{channel_name}")
+async def get_channel_config(channel_name: str):
+    if channel_name in config()["channels"]:
+        return config()["channels"][channel_name]
+    raise HTTPException(status_code=404, detail="Channel not found")
+
+
+@router.post("/add_channel")
+async def add_channel(request: Request):
+    data = await request.json()
+    channel_name = data.get("channel_name")
+    base_url = data.get("base_url")
+    api_key = data.get("api_key")
+
+    if not all([channel_name, base_url, api_key]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    if channel_name in config()["channels"]:
+        raise HTTPException(status_code=400, detail="Channel already exists")
+    current_config = config()
+    current_config["channels"][channel_name] = {"base_url": base_url, "api_key": api_key}
+
+    # 保存更新后的配置
+    with open("config.json", "w") as f:
+        f.seek(0)
+        json.dump(current_config, f, indent=2)
+        f.truncate()
+
+    return {"message": f"Channel {channel_name} added successfully"}
+
+
+@router.post("/switch_channel")
+async def switch_channel(request: Request):
+    data = await request.json()
+    channel = data.get("channel")
+    switch_flag = await switch_api_channel(channel)
+    if switch_flag:
+        return JSONResponse(
+            {"success": True, "message": f"Switched to channel {channel}"}
+        )
+    return JSONResponse(
+        {"success": False, "message": "Invalid channel"}, status_code=400
+    )
