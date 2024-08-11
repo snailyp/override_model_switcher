@@ -119,7 +119,7 @@ async def chat_completions(request: Request, api_key: str = Depends(verify_api_k
             "Content-Type": "application/json",
         }
 
-        if override_model:
+        if body["model"] == "override" and override_model:
             body["model"] = override_model
 
         stream = body.get("stream", False)
