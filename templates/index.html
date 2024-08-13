@@ -165,6 +165,77 @@
         margin: 20px auto;
       }
 
+      .custom-alert {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .alert-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 400px;
+        border-radius: 5px;
+        text-align: center;
+      }
+
+      #closeAlert {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 15px;
+      }
+
+      #closeAlert:hover {
+        background-color: #2980b9;
+      }
+
+      #customConfirm .button-group {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      #customConfirm .button-group button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+
+      #customConfirm #confirmYes {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      #customConfirm #confirmYes:hover {
+        background-color: #2980b9;
+      }
+
+      #customConfirm #confirmNo {
+        background-color: #e74c3c;
+        color: white;
+      }
+
+      #customConfirm #confirmNo:hover {
+        background-color: #c0392b;
+      }
+
       @keyframes spin {
         0% {
           transform: rotate(0deg);
@@ -273,7 +344,23 @@
         <button id="switchButton"><i class="fas fa-sync"></i> 切换模型</button>
       </div>
 
-      <div id="message" style="display: none"></div>
+      <div id="customAlert" class="custom-alert">
+        <div class="alert-content">
+          <p id="alertMessage"></p>
+          <button id="closeAlert">确定</button>
+        </div>
+      </div>
+
+      <div id="customConfirm" class="custom-alert">
+        <div class="alert-content">
+          <p id="confirmMessage"></p>
+          <div class="button-group">
+            <button id="confirmYes">确定</button>
+            <button id="confirmNo">取消</button>
+          </div>
+        </div>
+      </div>
+
       <div id="loader" class="loader" style="display: none"></div>
     </div>
     <footer>

@@ -35,7 +35,6 @@ class ExportChannelInfo(BaseModel):
     api_key: str
 
 
-
 class OverrideModelRequest(BaseModel):
     model: str
 
@@ -149,7 +148,7 @@ async def chat_completions(request: Request, api_key: str = Depends(verify_api_k
 
         async def event_stream():
             try:
-                timeout = httpx.Timeout(timeout=10,read=120)
+                timeout = httpx.Timeout(timeout=10, read=120)
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     async with client.stream(
                         "POST",
@@ -298,14 +297,12 @@ async def switch_channel(request: Request):
 async def export_channels():
     current_config = config()
     channels = current_config["channels"]
-    
+
     export_data = [
         ExportChannelInfo(
-            channel_name=name,
-            base_url=info["base_url"],
-            api_key=info["api_key"]
+            channel_name=name, base_url=info["base_url"], api_key=info["api_key"]
         )
         for name, info in channels.items()
     ]
-    
+
     return JSONResponse(content=[channel.dict() for channel in export_data])

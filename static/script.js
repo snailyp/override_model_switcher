@@ -6,13 +6,28 @@ document.addEventListener("DOMContentLoaded", function () {
   const switchChannelButton = document.getElementById("switchChannelButton");
   const deleteChannelButton = document.getElementById("deleteChannelButton");
   const switchButton = document.getElementById("switchButton");
-  const messageElement = document.getElementById("message");
-  const loader = document.getElementById("loader");
   const modelSelect = document.getElementById("modelSelect");
   const channelSelect = document.getElementById("channelSelect");
-  const toggleBtns = document.querySelectorAll(".toggle-btn");
 
   const clearConfigButton = document.getElementById("clearConfigButton");
+  const customAlert = document.getElementById("customAlert");
+  const alertMessage = document.getElementById("alertMessage");
+  const closeAlert = document.getElementById("closeAlert");
+  function showMessage(text, type) {
+    alertMessage.textContent = text;
+    alertMessage.style.color = type === "error" ? "#ff0000" : "#006600";
+    customAlert.style.display = "block";
+  }
+
+  closeAlert.onclick = function () {
+    customAlert.style.display = "none";
+  };
+
+  window.onclick = function (event) {
+    if (event.target == customAlert) {
+      customAlert.style.display = "none";
+    }
+  };
   const clearBulkUploadButton = document.getElementById(
     "clearBulkUploadButton"
   );
@@ -111,7 +126,10 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    if (!confirm(`确定要删除渠道 "${selectedChannel}" 吗？`)) {
+    const confirmResult = await showConfirm(
+      `确定要删除渠道 "${selectedChannel}" 吗？`
+    );
+    if (!confirmResult) {
       return;
     }
 
@@ -199,7 +217,9 @@ document.addEventListener("DOMContentLoaded", function () {
       const response = await fetch("/export_channels");
       if (response.ok) {
         const channels = await response.json();
-        const blob = new Blob([JSON.stringify(channels, null, 2)], { type: "application/json" });
+        const blob = new Blob([JSON.stringify(channels, null, 2)], {
+          type: "application/json",
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -251,14 +271,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  function showMessage(text, type) {
-    messageElement.textContent = text;
-    messageElement.style.display = "block";
-    messageElement.style.backgroundColor =
-      type === "error" ? "#ffcccc" : "#ccffcc";
-    messageElement.style.color = type === "error" ? "#ff0000" : "#006600";
-  }
-
   function showLoader() {
     loader.style.display = "block";
   }
@@ -267,10 +279,32 @@ document.addEventListener("DOMContentLoaded", function () {
     loader.style.display = "none";
   }
 
-  toggleBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const configForm = this.closest('.config-form');
-      configForm.classList.toggle('expanded');
+  function showConfirm(message) {
+    return new Promise((resolve) => {
+      const customConfirm = document.getElementById("customConfirm");
+      const confirmMessage = document.getElementById("confirmMessage");
+      const confirmYes = document.getElementById("confirmYes");
+      const confirmNo = document.getElementById("confirmNo");
+
+      confirmMessage.textContent = message;
+      customConfirm.style.display = "block";
+
+      confirmYes.onclick = function () {
+        customConfirm.style.display = "none";
+        resolve(true);
+      };
+
+      confirmNo.onclick = function () {
+        customConfirm.style.display = "none";
+        resolve(false);
+      };
+
+      window.onclick = function (event) {
+        if (event.target == customConfirm) {
+          customConfirm.style.display = "none";
+          resolve(false);
+        }
+      };
     });
-  });
+  }
 });
