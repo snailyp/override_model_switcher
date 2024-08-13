@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const clearBulkUploadButton = document.getElementById(
     "clearBulkUploadButton"
   );
+  const exportChannelsButton = document.getElementById("exportChannelsButton");
 
   // 初始化：获取渠道列表和模型列表
   fetchChannels().then(() => {
@@ -37,6 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
   switchButton.addEventListener("click", switchModel);
   clearConfigButton.addEventListener("click", clearConfig);
   clearBulkUploadButton.addEventListener("click", clearBulkUpload);
+  exportChannelsButton.addEventListener("click", exportChannels);
 
   function clearConfig() {
     document.getElementById("channelName").value = "";
@@ -189,6 +191,29 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     } catch (error) {
       showMessage("获取渠道列表时发生错误", "error");
+    }
+  }
+
+  async function exportChannels() {
+    try {
+      const response = await fetch("/export_channels");
+      if (response.ok) {
+        const channels = await response.json();
+        const blob = new Blob([JSON.stringify(channels, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "channels_config.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showMessage("渠道配置已成功导出", "success");
+      } else {
+        showMessage("导出渠道配置失败", "error");
+      }
+    } catch (error) {
+      showMessage("导出渠道配置时发生错误", "error");
     }
   }
 

@@ -28,6 +28,14 @@ api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
 templates = Jinja2Templates(directory="templates")
 
 
+# 添加这个新的模型用于导出
+class ExportChannelInfo(BaseModel):
+    channel_name: str
+    base_url: str
+    api_key: str
+
+
+
 class OverrideModelRequest(BaseModel):
     model: str
 
@@ -284,3 +292,20 @@ async def switch_channel(request: Request):
     return JSONResponse(
         {"success": False, "message": "Invalid channel"}, status_code=400
     )
+
+
+@router.get("/export_channels", response_model=List[ExportChannelInfo])
+async def export_channels():
+    current_config = config()
+    channels = current_config["channels"]
+    
+    export_data = [
+        ExportChannelInfo(
+            channel_name=name,
+            base_url=info["base_url"],
+            api_key=info["api_key"]
+        )
+        for name, info in channels.items()
+    ]
+    
+    return JSONResponse(content=[channel.dict() for channel in export_data])
