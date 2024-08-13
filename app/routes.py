@@ -125,6 +125,7 @@ async def chat_completions(request: Request, api_key: str = Depends(verify_api_k
 
         try:
             body = json.loads(body)
+            logger.info(f"Request body: {body}")
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid JSON in request body")
 
@@ -140,7 +141,8 @@ async def chat_completions(request: Request, api_key: str = Depends(verify_api_k
 
         async def event_stream():
             try:
-                async with httpx.AsyncClient() as client:
+                timeout = httpx.Timeout(timeout=10,read=120)
+                async with httpx.AsyncClient(timeout=timeout) as client:
                     async with client.stream(
                         "POST",
                         f"{get_current_config()['base_url']}/v1/chat/completions",
