@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
+  changeBackground();
+
   const currentChannel = document.getElementById("currentChannel").value;
   const currentModel = document.getElementById("currentModel").value;
   const uploadConfigButton = document.getElementById("uploadConfigButton");
@@ -13,6 +15,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const customAlert = document.getElementById("customAlert");
   const alertMessage = document.getElementById("alertMessage");
   const closeAlert = document.getElementById("closeAlert");
+  const opacitySlider = document.getElementById("opacitySlider");
+  const opacityValue = document.getElementById("opacityValue");
+  const cards = document.querySelectorAll(".card");
+
   function showMessage(text, type) {
     alertMessage.textContent = text;
     alertMessage.style.color = type === "error" ? "#ff0000" : "#006600";
@@ -54,7 +60,20 @@ document.addEventListener("DOMContentLoaded", function () {
   clearConfigButton.addEventListener("click", clearConfig);
   clearBulkUploadButton.addEventListener("click", clearBulkUpload);
   exportChannelsButton.addEventListener("click", exportChannels);
+  document
+    .getElementById("changeBackgroundBtn")
+    .addEventListener("click", changeBackground);
+  document
+    .getElementById("scrollTopBtn")
+    .addEventListener("click", scrollToTop);
 
+  opacitySlider.addEventListener("input", function () {
+    const opacity = this.value / 100;
+    opacityValue.textContent = this.value + "%";
+    cards.forEach((card) => {
+      card.style.opacity = opacity;
+    });
+  });
   function clearConfig() {
     document.getElementById("channelName").value = "";
     document.getElementById("baseUrl").value = "";
@@ -307,4 +326,34 @@ document.addEventListener("DOMContentLoaded", function () {
       };
     });
   }
+
+  // https://api.timelessq.com/bing/random
+  // https://api.paugram.com/wallpaper/?source=gh&category=us
+  // https://api.suyanw.cn/api/comic/api.php
+  function changeBackground() {
+    const randomParam = Date.now();
+    const wallpaperUrl = `/wallpaper?v=${randomParam}`;
+
+    const img = new Image();
+    img.onload = function () {
+      document.body.style.backgroundImage = `url('${wallpaperUrl}')`;
+    };
+    img.src = wallpaperUrl;
+  }
+
+  function scrollToTop() {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  window.addEventListener("scroll", function () {
+    var scrollBtn = document.getElementById("scrollTopBtn");
+    if (window.pageYOffset > 300) {
+      scrollBtn.style.display = "block";
+    } else {
+      scrollBtn.style.display = "none";
+    }
+  });
 });

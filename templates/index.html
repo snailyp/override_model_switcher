@@ -13,26 +13,30 @@
       :root {
         --primary-color: #3498db;
         --secondary-color: #2ecc71;
-        --background-color: #ecf0f1;
+        --header-color: #34495e;
+        --background-color: rgba(236, 240, 241, 0.8);
         --card-background: #ffffff;
-        --text-color: #34495e;
         --border-color: #bdc3c7;
-        --header-color: #2c3e50;
       }
 
       body {
-        font-family: "Roboto", Arial, sans-serif;
+        font-family: Arial, sans-serif;
         margin: 0;
         padding: 0;
-        background-color: var(--background-color);
-        color: var(--text-color);
+        color: #333;
         line-height: 1.6;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        transition: background-image 0.5s ease-in-out;
       }
 
       .container {
-        max-width: 1200px;
-        margin: 0 auto;
+        background-color: var(--background-color);
+        border-radius: 10px;
         padding: 20px;
+        margin: 20px auto;
+        max-width: 800px;
       }
 
       header {
@@ -261,6 +265,68 @@
           padding: 15px;
         }
       }
+
+      #changeBackgroundBtn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: background-color 0.3s;
+      }
+
+      #changeBackgroundBtn:hover {
+        background-color: #2980b9;
+      }
+
+      #scrollTopBtn {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: background-color 0.3s;
+        display: none;
+      }
+
+      #scrollTopBtn:hover {
+        background-color: #27ae60;
+      }
+      .opacity-control {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 1000;
+      }
+
+      .opacity-control label {
+        margin-right: 10px;
+      }
+
+      .opacity-control input {
+        vertical-align: middle;
+      }
+
+      .card {
+        transition: opacity 0.3s ease;
+      }
     </style>
   </head>
   <body>
@@ -275,6 +341,11 @@
         <li><a href="#model-selection">模型选择</a></li>
       </ul>
     </nav>
+    <div class="opacity-control">
+      <label for="opacitySlider">表单透明度：</label>
+      <input type="range" id="opacitySlider" min="0" max="100" value="100" />
+      <span id="opacityValue">100%</span>
+    </div>
     <div class="container">
       <input type="hidden" id="currentChannel" value="{{ current_channel }}" />
       <input type="hidden" id="currentModel" value="{{ current_model }}" />
@@ -361,6 +432,12 @@
         </div>
       </div>
 
+      <button id="changeBackgroundBtn" title="更换背景">
+        <i class="fas fa-image"></i>
+      </button>
+      <button id="scrollTopBtn" title="返回顶部">
+        <i class="fas fa-chevron-up"></i>
+      </button>
       <div id="loader" class="loader" style="display: none"></div>
     </div>
     <footer>

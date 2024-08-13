@@ -1,6 +1,6 @@
 from http.client import HTTPException
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, StreamingResponse, JSONResponse, HTMLResponse
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
@@ -306,3 +306,30 @@ async def export_channels():
     ]
 
     return JSONResponse(content=[channel.dict() for channel in export_data])
+
+@router.get("/wallpaper")
+async def get_wallpaper():
+    wallpaper_api_url = "https://api.suyanw.cn/api/comic/api.php"
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(wallpaper_api_url, follow_redirects=True)
+            
+        if response.status_code == 200:
+            # 获取最终重定向后的URL
+            final_url = str(response.url)
+            
+            # 创建一个新的请求来获取实际的图片内容
+            async with httpx.AsyncClient() as client:
+                img_response = await client.get(final_url)
+            
+            if img_response.status_code == 200:
+                # 返回图片内容，而不是重定向
+                return StreamingResponse(img_response.iter_bytes(), media_type=img_response.headers.get('content-type'))
+            else:
+                raise HTTPException(status_code=img_response.status_code, detail="Failed to fetch image content")
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Failed to fetch wallpaper URL")
+    
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching wallpaper: {str(e)}")
