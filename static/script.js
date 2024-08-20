@@ -67,13 +67,18 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("scrollTopBtn")
     .addEventListener("click", scrollToTop);
 
+    // 设置初始透明度为 50%
+  setOpacity(0.5);
   opacitySlider.addEventListener("input", function () {
     const opacity = this.value / 100;
-    opacityValue.textContent = this.value + "%";
+    setOpacity(opacity);
+  });
+  function setOpacity(opacity) {
+    opacityValue.textContent = Math.round(opacity * 100) + "%";
     cards.forEach((card) => {
       card.style.opacity = opacity;
     });
-  });
+  }
   function clearConfig() {
     document.getElementById("channelName").value = "";
     document.getElementById("baseUrl").value = "";
@@ -160,6 +165,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (response.ok) {
         showMessage(`已删除渠道: ${selectedChannel}`, "success");
         fetchChannels(); // 刷新渠道列表
+        fetchModels();//刷新模型列表
       } else {
         showMessage("删除渠道失败", "error");
       }

@@ -308,20 +308,29 @@
       }
       .opacity-control {
         position: fixed;
-        top: 20px;
-        right: 20px;
+        top: 50%;
+        right: -180px; /* 初始状态隐藏在右边 */
+        transform: translateY(-50%);
         background-color: rgba(255, 255, 255, 0.8);
         padding: 10px;
-        border-radius: 5px;
+        border-radius: 5px 0 0 5px;
         z-index: 1000;
+        transition: right 0.3s ease;
+        width: 200px;
+      }
+
+      .opacity-control:hover {
+        right: 0; /* 鼠标悬停时滑出 */
       }
 
       .opacity-control label {
-        margin-right: 10px;
+        display: block;
+        margin-bottom: 5px;
       }
 
       .opacity-control input {
-        vertical-align: middle;
+        width: 100%;
+        margin-bottom: 5px;
       }
 
       .card {
@@ -343,8 +352,8 @@
     </nav>
     <div class="opacity-control">
       <label for="opacitySlider">表单透明度：</label>
-      <input type="range" id="opacitySlider" min="0" max="100" value="100" />
-      <span id="opacityValue">100%</span>
+      <input type="range" id="opacitySlider" min="0" max="100" value="50" />
+      <span id="opacityValue">50%</span>
     </div>
     <div class="container">
       <input type="hidden" id="currentChannel" value="{{ current_channel }}" />
