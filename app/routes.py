@@ -1,6 +1,11 @@
 from http.client import HTTPException
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import RedirectResponse, StreamingResponse, JSONResponse, HTMLResponse
+from fastapi.responses import (
+    RedirectResponse,
+    StreamingResponse,
+    JSONResponse,
+    HTMLResponse,
+)
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
@@ -208,13 +213,18 @@ async def get_channel_config(channel_name: str):
 @router.delete("/delete_channel/{channel_name}")
 async def delete_channel(channel_name: str):
     current_config = config()
+    global override_model
     if channel_name not in current_config["channels"]:
         raise HTTPException(status_code=404, detail="Channel not found")
 
-    if channel_name == current_config["current_channel"]:
+    if channel_name == "default":
         raise HTTPException(
-            status_code=400, detail="Cannot delete the current active channel"
+            status_code=400, detail="Cannot delete the default channel"
         )
+    if channel_name == current_config["current_channel"]:
+        current_config["current_channel"] = "default"
+        current_config["current_model"] = "gpt-4o"
+        override_model = "gpt-4o"
 
     del current_config["channels"][channel_name]
 
@@ -307,29 +317,40 @@ async def export_channels():
 
     return JSONResponse(content=[channel.dict() for channel in export_data])
 
+
 @router.get("/wallpaper")
 async def get_wallpaper():
     wallpaper_api_url = "https://api.suyanw.cn/api/comic/api.php"
-    
+
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(wallpaper_api_url, follow_redirects=True)
-            
+
         if response.status_code == 200:
             # 获取最终重定向后的URL
             final_url = str(response.url)
-            
+
             # 创建一个新的请求来获取实际的图片内容
             async with httpx.AsyncClient() as client:
                 img_response = await client.get(final_url)
-            
+
             if img_response.status_code == 200:
                 # 返回图片内容，而不是重定向
-                return StreamingResponse(img_response.iter_bytes(), media_type=img_response.headers.get('content-type'))
+                return StreamingResponse(
+                    img_response.iter_bytes(),
+                    media_type=img_response.headers.get("content-type"),
+                )
             else:
-                raise HTTPException(status_code=img_response.status_code, detail="Failed to fetch image content")
+                raise HTTPException(
+                    status_code=img_response.status_code,
+                    detail="Failed to fetch image content",
+                )
         else:
-            raise HTTPException(status_code=response.status_code, detail="Failed to fetch wallpaper URL")
-    
+            raise HTTPException(
+                status_code=response.status_code, detail="Failed to fetch wallpaper URL"
+            )
+
     except httpx.RequestError as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching wallpaper: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching wallpaper: {str(e)}"
+        )
