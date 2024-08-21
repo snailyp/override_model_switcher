@@ -25,7 +25,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const exportModelsBtn = document.getElementById("exportModelsBtn");
   // const testModelsBtn = document.getElementById("testModelsBtn");
   // const testModelBtn = document.getElementById("testModelBtn");
-  
 
   function showMessage(text, type) {
     alertMessage.textContent = text;
@@ -85,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         body: JSON.stringify({ channel: selectedChannel }),
       });
-  
+
       if (response.ok) {
         const data = await response.json();
         showMessage(`模型检测结果: ${JSON.stringify(data.results)}`, "success");
@@ -98,6 +97,36 @@ document.addEventListener("DOMContentLoaded", function () {
     } finally {
       hideLoader();
     }
+  }
+
+  function showPrompt(message) {
+    return new Promise((resolve) => {
+      const customPrompt = document.getElementById("customPrompt");
+      const promptMessage = document.getElementById("promptMessage");
+      const promptInput = document.getElementById("promptInput");
+      const promptOk = document.getElementById("promptOk");
+      const promptCancel = document.getElementById("promptCancel");
+
+      promptMessage.textContent = message;
+      customPrompt.style.display = "block";
+
+      promptOk.onclick = function () {
+        customPrompt.style.display = "none";
+        resolve(promptInput.value);
+      };
+
+      promptCancel.onclick = function () {
+        customPrompt.style.display = "none";
+        resolve(null);
+      };
+
+      window.onclick = function (event) {
+        if (event.target == customPrompt) {
+          customPrompt.style.display = "none";
+          resolve(null);
+        }
+      };
+    });
   }
   async function exportModels() {
     try {
@@ -246,7 +275,6 @@ document.addEventListener("DOMContentLoaded", function () {
         // showMessage(`已切换到渠道: ${selectedChannel}\n可以用的模型:${res["test_results"]}`, "success");
         fetchModels(); // 刷新模型列表
       } else {
-        
         showMessage(`切换失败: ${errorData.detail}`, "error");
       }
     } catch (error) {
@@ -295,8 +323,18 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   async function exportChannels() {
+    const apiKey = await showPrompt("请输入 API Key:");
+
+    if (!apiKey) {
+      showMessage("API Key 不能为空", "error");
+      return;
+    }
     try {
-      const response = await fetch("/export_channels");
+      const response = await fetch("/export_channels", {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
       if (response.ok) {
         const channels = await response.json();
         const blob = new Blob([JSON.stringify(channels, null, 2)], {

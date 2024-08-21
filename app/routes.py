@@ -62,7 +62,7 @@ async def switch_api_channel(channel_name):
             allowed_models = await get_allowed_models()
             test_results = config["channels"][channel_name].get("test_results", {})
             return {"success": True, "test_results": test_results}
-            
+
     return {"success": False, "message": "Invalid channel"}
 
 
@@ -296,7 +296,11 @@ async def switch_channel(request: Request):
     switch_result = await switch_api_channel(channel)
     if switch_result["success"]:
         return JSONResponse(
-            {"success": True, "message": f"Switched to channel {channel}", "data": switch_result["test_results"]},
+            {
+                "success": True,
+                "message": f"Switched to channel {channel}",
+                "data": switch_result["test_results"],
+            },
         )
     return JSONResponse(
         {"success": False, "message": "Invalid channel"}, status_code=400
@@ -304,7 +308,7 @@ async def switch_channel(request: Request):
 
 
 @router.get("/export_channels", response_model=List[ExportChannelInfo])
-async def export_channels():
+async def export_channels(api_key: str = Depends(verify_api_key)):
     current_config = config()
     channels = current_config["channels"]
 
@@ -329,7 +333,7 @@ async def export_models():
 async def test_all_models(request: Request):
     data = await request.json()
     channel = data.get("channel")
-    
+
     # 检查渠道是否存在
     current_config = config()
     if channel not in current_config["channels"]:
@@ -359,7 +363,7 @@ async def test_all_models(request: Request):
             body = {
                 "model": model["id"],
                 "messages": [{"role": "user", "content": "hi"}],
-                "stream": True
+                "stream": True,
             }
 
             try:
@@ -367,7 +371,7 @@ async def test_all_models(request: Request):
                     "POST",
                     f"{channel_config['base_url']}/v1/chat/completions",
                     json=body,
-                    headers=headers
+                    headers=headers,
                 ) as response:
                     if response.status_code == 200:
                         async for line in response.aiter_lines():
@@ -375,7 +379,9 @@ async def test_all_models(request: Request):
                                 test_results[model["id"]] = "success"
                                 break
                     else:
-                        test_results[model["id"]] = f"failed: HTTP {response.status_code}"
+                        test_results[model["id"]] = (
+                            f"failed: HTTP {response.status_code}"
+                        )
             except Exception as e:
                 test_results[model["id"]] = f"failed: {str(e)}"
 
@@ -385,9 +391,13 @@ async def test_all_models(request: Request):
         json.dump(current_config, f, indent=2)
 
     return JSONResponse(
-        {"success": True, "message": f"Test results for channel {channel}", "results": test_results}
+        {
+            "success": True,
+            "message": f"Test results for channel {channel}",
+            "results": test_results,
+        }
     )
-        
+
 
 @router.get("/wallpaper")
 async def get_wallpaper():

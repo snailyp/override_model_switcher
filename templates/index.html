@@ -240,6 +240,50 @@
         background-color: #c0392b;
       }
 
+      #customPrompt .alert-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 400px;
+        border-radius: 5px;
+        text-align: center;
+      }
+
+      #customPrompt .button-group {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 20px;
+      }
+
+      #customPrompt .button-group button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+
+      #customPrompt #promptOk {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      #customPrompt #promptOk:hover {
+        background-color: #2980b9;
+      }
+
+      #customPrompt #promptCancel {
+        background-color: #e74c3c;
+        color: white;
+      }
+
+      #customPrompt #promptCancel:hover {
+        background-color: #c0392b;
+      }
+
       @keyframes spin {
         0% {
           transform: rotate(0deg);
@@ -448,6 +492,16 @@
         </div>
       </div>
 
+      <div id="customPrompt" class="custom-alert">
+        <div class="alert-content">
+          <p id="promptMessage"></p>
+          <input type="text" id="promptInput" />
+          <div class="button-group">
+            <button id="promptOk">确定</button>
+            <button id="promptCancel">取消</button>
+          </div>
+        </div>
+      </div>
       <button id="changeBackgroundBtn" title="更换背景">
         <i class="fas fa-image"></i>
       </button>
