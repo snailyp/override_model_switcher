@@ -18,6 +18,14 @@ document.addEventListener("DOMContentLoaded", function () {
   const opacitySlider = document.getElementById("opacitySlider");
   const opacityValue = document.getElementById("opacityValue");
   const cards = document.querySelectorAll(".card");
+  const clearBulkUploadButton = document.getElementById(
+    "clearBulkUploadButton"
+  );
+  const exportChannelsButton = document.getElementById("exportChannelsButton");
+  const exportModelsBtn = document.getElementById("exportModelsBtn");
+  // const testModelsBtn = document.getElementById("testModelsBtn");
+  // const testModelBtn = document.getElementById("testModelBtn");
+  
 
   function showMessage(text, type) {
     alertMessage.textContent = text;
@@ -34,10 +42,6 @@ document.addEventListener("DOMContentLoaded", function () {
       customAlert.style.display = "none";
     }
   };
-  const clearBulkUploadButton = document.getElementById(
-    "clearBulkUploadButton"
-  );
-  const exportChannelsButton = document.getElementById("exportChannelsButton");
 
   // 初始化：获取渠道列表和模型列表
   fetchChannels().then(() => {
@@ -66,8 +70,58 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("scrollTopBtn")
     .addEventListener("click", scrollToTop);
+  exportModelsBtn.addEventListener("click", exportModels);
+  // testModelsBtn.addEventListener("click", testModels);
+  // testModelBtn.addEventListener("click", testModel);
 
-    // 设置初始透明度为 50%
+  async function testModels() {
+    const selectedChannel = document.getElementById("channelSelect").value;
+    showLoader();
+    try {
+      const response = await fetch("/test_all_models", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ channel: selectedChannel }),
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        showMessage(`模型检测结果: ${JSON.stringify(data.results)}`, "success");
+      } else {
+        const errorData = await response.json();
+        showMessage(`模型检测失败: ${errorData.message}`, "error");
+      }
+    } catch (error) {
+      showMessage("检测模型时发生错误", "error");
+    } finally {
+      hideLoader();
+    }
+  }
+  async function exportModels() {
+    try {
+      const response = await fetch("/export_models");
+      if (response.ok) {
+        const modelsText = await response.text();
+        const blob = new Blob([modelsText], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "models_list.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showMessage("模型列表已成功导出", "success");
+      } else {
+        showMessage("导出模型列表失败", "error");
+      }
+    } catch (error) {
+      showMessage("导出模型列表时发生错误", "error");
+    }
+  }
+  // 设置初始透明度为 50%
   setOpacity(0.5);
   opacitySlider.addEventListener("input", function () {
     const opacity = this.value / 100;
@@ -165,7 +219,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (response.ok) {
         showMessage(`已删除渠道: ${selectedChannel}`, "success");
         fetchChannels(); // 刷新渠道列表
-        fetchModels();//刷新模型列表
+        fetchModels(); //刷新模型列表
       } else {
         showMessage("删除渠道失败", "error");
       }
@@ -186,11 +240,14 @@ document.addEventListener("DOMContentLoaded", function () {
         body: JSON.stringify({ channel: selectedChannel }),
       });
 
+      // const res = await response.json();
       if (response.ok) {
         showMessage(`已切换到渠道: ${selectedChannel}`, "success");
+        // showMessage(`已切换到渠道: ${selectedChannel}\n可以用的模型:${res["test_results"]}`, "success");
         fetchModels(); // 刷新模型列表
       } else {
-        showMessage("切换渠道失败", "error");
+        
+        showMessage(`切换失败: ${errorData.detail}`, "error");
       }
     } catch (error) {
       showMessage("切换渠道时发生错误", "error");

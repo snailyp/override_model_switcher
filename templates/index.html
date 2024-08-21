@@ -14,7 +14,7 @@
         --primary-color: #3498db;
         --secondary-color: #2ecc71;
         --header-color: #34495e;
-        --background-color: rgba(236, 240, 241, 0.8);
+        --background-color: rgba(236, 240, 241, 0.5);
         --card-background: #ffffff;
         --border-color: #bdc3c7;
       }
@@ -361,7 +361,7 @@
 
       <div id="upload" class="card">
         <div class="card-header">
-          <h2><i class="fas fa-upload"></i> 上传 API 配置</h2>
+          <h2><i class="fas fa-upload"></i> 上传渠道</h2>
         </div>
         <input type="text" id="channelName" placeholder="渠道名称" required />
         <input type="text" id="baseUrl" placeholder="Base URL" required />
@@ -378,7 +378,7 @@
 
       <div id="bulk-upload" class="card">
         <div class="card-header">
-          <h2><i class="fas fa-file-import"></i> 批量上传渠道配置</h2>
+          <h2><i class="fas fa-file-import"></i> 批量上传渠道</h2>
         </div>
         <textarea
           id="bulkChannelConfig"
@@ -421,7 +421,14 @@
           <h2><i class="fas fa-robot"></i> 模型选择</h2>
         </div>
         <select id="modelSelect"></select>
-        <button id="switchButton"><i class="fas fa-sync"></i> 切换模型</button>
+        <div class="button-group">
+          <button id="switchButton">
+            <i class="fas fa-sync"></i> 切换模型
+          </button>
+          <button id="exportModelsBtn">
+            <i class="fas fa-file-export"></i> 导出模型
+          </button>
+        </div>
       </div>
 
       <div id="customAlert" class="custom-alert">

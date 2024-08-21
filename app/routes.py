@@ -1,7 +1,7 @@
 from http.client import HTTPException
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import (
-    RedirectResponse,
+    PlainTextResponse,
     StreamingResponse,
     JSONResponse,
     HTMLResponse,
@@ -60,8 +60,10 @@ async def switch_api_channel(channel_name):
             json.dump(config, f, indent=2)
             f.truncate()
             allowed_models = await get_allowed_models()
-            return True
-    return False
+            test_results = config["channels"][channel_name].get("test_results", {})
+            return {"success": True, "test_results": test_results}
+            
+    return {"success": False, "message": "Invalid channel"}
 
 
 # 验证 API 密钥的函数
@@ -218,9 +220,7 @@ async def delete_channel(channel_name: str):
         raise HTTPException(status_code=404, detail="Channel not found")
 
     if channel_name == "default":
-        raise HTTPException(
-            status_code=400, detail="Cannot delete the default channel"
-        )
+        raise HTTPException(status_code=400, detail="Cannot delete the default channel")
     if channel_name == current_config["current_channel"]:
         current_config["current_channel"] = "default"
         current_config["current_model"] = "gpt-4o"
@@ -293,10 +293,10 @@ async def bulk_add_channels(channels: List[ChannelInfo]):
 async def switch_channel(request: Request):
     data = await request.json()
     channel = data.get("channel")
-    switch_flag = await switch_api_channel(channel)
-    if switch_flag:
+    switch_result = await switch_api_channel(channel)
+    if switch_result["success"]:
         return JSONResponse(
-            {"success": True, "message": f"Switched to channel {channel}"}
+            {"success": True, "message": f"Switched to channel {channel}", "data": switch_result["test_results"]},
         )
     return JSONResponse(
         {"success": False, "message": "Invalid channel"}, status_code=400
@@ -317,6 +317,77 @@ async def export_channels():
 
     return JSONResponse(content=[channel.dict() for channel in export_data])
 
+
+@router.get("/export_models", response_class=PlainTextResponse)
+async def export_models():
+    models = await get_allowed_models()
+    models_str = ",".join(models)
+    return models_str
+
+
+@router.post("/test_all_models")
+async def test_all_models(request: Request):
+    data = await request.json()
+    channel = data.get("channel")
+    
+    # 检查渠道是否存在
+    current_config = config()
+    if channel not in current_config["channels"]:
+        return JSONResponse(
+            {"success": False, "message": "Invalid channel"}, status_code=400
+        )
+
+    # 获取渠道配置信息
+    channel_config = current_config["channels"][channel]
+    headers = {
+        "Authorization": f"Bearer {channel_config['api_key']}",
+        "Content-Type": "application/json",
+    }
+
+    # 假设我们获取模型列表的 API
+    models_response = await fetch_models()
+    if not models_response:
+        return JSONResponse(
+            {"success": False, "message": "Failed to fetch models"}, status_code=500
+        )
+
+    models = models_response["data"]
+    test_results = {}
+
+    async with httpx.AsyncClient() as client:
+        for model in models:
+            body = {
+                "model": model["id"],
+                "messages": [{"role": "user", "content": "hi"}],
+                "stream": True
+            }
+
+            try:
+                async with client.stream(
+                    "POST",
+                    f"{channel_config['base_url']}/v1/chat/completions",
+                    json=body,
+                    headers=headers
+                ) as response:
+                    if response.status_code == 200:
+                        async for line in response.aiter_lines():
+                            if line:
+                                test_results[model["id"]] = "success"
+                                break
+                    else:
+                        test_results[model["id"]] = f"failed: HTTP {response.status_code}"
+            except Exception as e:
+                test_results[model["id"]] = f"failed: {str(e)}"
+
+    # 保存测试结果到 config.json
+    current_config["channels"][channel]["test_results"] = test_results
+    with open("config.json", "w") as f:
+        json.dump(current_config, f, indent=2)
+
+    return JSONResponse(
+        {"success": True, "message": f"Test results for channel {channel}", "results": test_results}
+    )
+        
 
 @router.get("/wallpaper")
 async def get_wallpaper():
