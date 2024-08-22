@@ -180,7 +180,7 @@ async def chat_completions(request: Request, api_key: str = Depends(verify_api_k
             return StreamingResponse(event_stream(), media_type="text/event-stream")
         else:
             # 非流式处理逻辑
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=10, read=120)) as client:
                 response = await client.post(
                     f"{get_current_config()['base_url']}/v1/chat/completions",
                     json=body,
