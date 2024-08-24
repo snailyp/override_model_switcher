@@ -171,7 +171,7 @@ async def chat_completions(request: Request, api_key: str = Depends(verify_api_k
         ):
             messages = body.get("messages", [])
             messages = merge_consecutive_messages(messages)
-            body.set("messages", messages)
+            body["messages"] = messages
         stream = body.get("stream", False)
         async def event_stream():
             try:
