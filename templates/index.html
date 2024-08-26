@@ -7,7 +7,7 @@
     <script src="/static/script.js" defer></script>
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <style>
       :root {
@@ -74,8 +74,8 @@
 
       nav {
         background-color: var(--nav-bg-color);
-        padding: 0.75rem 0;
-        margin: 20px auto;
+        padding: 0.5rem 0;
+        margin: 10px auto;
         max-width: 840px;
         border-radius: 10px;
       }
@@ -332,13 +332,20 @@
         background-color: var(--footer-bg-color);
         color: var(--footer-text-color);
         text-align: center;
-        padding: 2rem 0;
+        padding: 2rem;
         margin-top: 3rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
       }
 
       footer p {
         margin: 0;
         font-size: 0.9rem;
+        line-height: 1.5;
       }
 
       @media (max-width: 768px) {
@@ -347,6 +354,13 @@
         }
         .card {
           padding: 15px;
+        }
+        footer {
+          padding: 1.5rem;
+          margin-top: 2rem;
+        }
+        footer p {
+          font-size: 0.8rem;
         }
       }
 
@@ -435,6 +449,33 @@
 
       .card {
         transition: opacity 0.3s ease;
+      }
+
+      .social-icons {
+        margin-top: 1rem;
+      }
+
+      .social-icons a {
+        color: var(--footer-text-color);
+        font-size: 1.5rem;
+        margin: 0 10px;
+        transition: color 0.3s ease;
+      }
+
+      .social-icons a:hover {
+        color: var(--primary-color);
+      }
+
+      @media (max-width: 768px) {
+        /* 保留现有的媒体查询样式 */
+        .social-icons {
+          margin-top: 0.5rem;
+        }
+
+        .social-icons a {
+          font-size: 1.2rem;
+          margin: 0 8px;
+        }
       }
     </style>
   </head>
@@ -571,6 +612,32 @@
     </div>
     <footer>
       <p>&copy; 2024 OpenAI API 配置管理工具. snaily保留所有权利.</p>
+      <div class="social-icons">
+        <a
+          href="https://twitter.com/myhandle"
+          target="_blank"
+          rel="noopener noreferrer"
+          ><i class="fab fa-twitter"></i
+        ></a>
+        <a
+          href="https://instagram.com/myprofile"
+          target="_blank"
+          rel="noopener noreferrer"
+          ><i class="fab fa-github"></i
+        ></a>
+        <a
+          href="https://linkedin.com/in/myprofile"
+          target="_blank"
+          rel="noopener noreferrer"
+          ><i class="fab fa-telegram"></i
+        ></a>
+        <a
+          href="https://facebook.com/mypage"
+          target="_blank"
+          rel="noopener noreferrer"
+          ><i class="fab fa-youtube"></i
+        ></a>
+      </div>
     </footer>
   </body>
 </html>
