@@ -17,6 +17,14 @@
         --background-color: rgba(236, 240, 241, 0.5);
         --card-background: #ffffff;
         --border-color: #bdc3c7;
+        --header-bg-color: rgba(255, 255, 255, 0.8);
+        --header-text-color: #333;
+        --header-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --nav-bg-color: rgba(236, 240, 241, 0.6);
+        --nav-text-color: #495057;
+        --nav-hover-color: #ced4da;
+        --footer-bg-color: #f8f9fa;
+        --footer-text-color: #6c757d;
       }
 
       body {
@@ -40,15 +48,36 @@
       }
 
       header {
-        background-color: var(--header-color);
-        color: white;
-        padding: 1rem 0;
+        background-color: var(--header-bg-color);
+        color: var(--header-text-color);
+        padding: 2rem 0;
         text-align: center;
+        box-shadow: var(--header-shadow);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 10px;
+        margin: 20px auto;
+        transition: all 0.3s ease;
+        max-width: 840px;
+      }
+
+      header:hover {
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+      }
+
+      header h1 {
+        font-size: 2.5rem;
+        font-weight: 300;
+        margin-bottom: 0.5rem;
       }
 
       nav {
-        background-color: var(--primary-color);
-        padding: 0.5rem 0;
+        background-color: var(--nav-bg-color);
+        padding: 0.75rem 0;
+        margin: 20px auto;
+        max-width: 840px;
+        border-radius: 10px;
       }
 
       nav ul {
@@ -60,12 +89,18 @@
       }
 
       nav ul li {
-        margin: 0 1rem;
+        margin: 0 1.5rem;
       }
 
       nav ul li a {
-        color: white;
+        color: var(--nav-text-color);
         text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      nav ul li a:hover {
+        color: var(--nav-hover-color);
       }
 
       h1,
@@ -294,11 +329,16 @@
       }
 
       footer {
-        background-color: var(--header-color);
-        color: white;
+        background-color: var(--footer-bg-color);
+        color: var(--footer-text-color);
         text-align: center;
-        padding: 1rem 0;
-        margin-top: 2rem;
+        padding: 2rem 0;
+        margin-top: 3rem;
+      }
+
+      footer p {
+        margin: 0;
+        font-size: 0.9rem;
       }
 
       @media (max-width: 768px) {
@@ -350,21 +390,37 @@
       #scrollTopBtn:hover {
         background-color: #27ae60;
       }
-      .opacity-control {
+
+      .opacity-control-wrapper {
         position: fixed;
         top: 50%;
-        right: -180px; /* 初始状态隐藏在右边 */
+        right: 0;
         transform: translateY(-50%);
-        background-color: rgba(255, 255, 255, 0.8);
-        padding: 10px;
-        border-radius: 5px 0 0 5px;
         z-index: 1000;
-        transition: right 0.3s ease;
-        width: 200px;
       }
 
-      .opacity-control:hover {
-        right: 0; /* 鼠标悬停时滑出 */
+      .opacity-control-trigger {
+        width: 10px;
+        height: 100px;
+        background-color: rgba(52, 152, 219, 0.5);
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+      }
+
+      .opacity-control {
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 5px 0 0 5px;
+        box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      }
+
+      .opacity-control-wrapper:hover .opacity-control {
+        transform: translateX(0);
       }
 
       .opacity-control label {
@@ -394,10 +450,13 @@
         <li><a href="#model-selection">模型选择</a></li>
       </ul>
     </nav>
-    <div class="opacity-control">
-      <label for="opacitySlider">表单透明度：</label>
-      <input type="range" id="opacitySlider" min="0" max="100" value="50" />
-      <span id="opacityValue">50%</span>
+    <div class="opacity-control-wrapper">
+      <div class="opacity-control-trigger"></div>
+      <div class="opacity-control">
+        <label for="opacitySlider">表单透明度：</label>
+        <input type="range" id="opacitySlider" min="0" max="100" value="70" />
+        <span id="opacityValue">70%</span>
+      </div>
     </div>
     <div class="container">
       <input type="hidden" id="currentChannel" value="{{ current_channel }}" />

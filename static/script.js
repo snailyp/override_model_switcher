@@ -15,6 +15,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const customAlert = document.getElementById("customAlert");
   const alertMessage = document.getElementById("alertMessage");
   const closeAlert = document.getElementById("closeAlert");
+  const opacityControlWrapper = document.querySelector('.opacity-control-wrapper');
+  const opacityControl = document.querySelector('.opacity-control');
   const opacitySlider = document.getElementById("opacitySlider");
   const opacityValue = document.getElementById("opacityValue");
   const cards = document.querySelectorAll(".card");
@@ -25,6 +27,14 @@ document.addEventListener("DOMContentLoaded", function () {
   const exportModelsBtn = document.getElementById("exportModelsBtn");
   // const testModelsBtn = document.getElementById("testModelsBtn");
   // const testModelBtn = document.getElementById("testModelBtn");
+
+  opacityControlWrapper.addEventListener('mouseenter', function() {
+    opacityControl.style.transform = 'translateX(0)';
+  });
+
+  opacityControlWrapper.addEventListener('mouseleave', function() {
+    opacityControl.style.transform = 'translateX(100%)';
+  });
 
   function showMessage(text, type) {
     alertMessage.textContent = text;
@@ -150,8 +160,8 @@ document.addEventListener("DOMContentLoaded", function () {
       showMessage("导出模型列表时发生错误", "error");
     }
   }
-  // 设置初始透明度为 50%
-  setOpacity(0.5);
+  // 设置初始透明度为 70%
+  setOpacity(0.7);
   opacitySlider.addEventListener("input", function () {
     const opacity = this.value / 100;
     setOpacity(opacity);
