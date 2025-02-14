@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.routes import initialize_allowed_models, router
+from app.routes import router
 import uvicorn
 from starlette.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
+from app.routes.model import initialize_allowed_models
 
 
 @asynccontextmanager

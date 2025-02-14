@@ -5,7 +5,7 @@ import colorlog
 def setup_logger(name):
     # 创建 ColoredFormatter
     formatter = colorlog.ColoredFormatter(
-        "%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(asctime)s%(reset)s %(white)s%(name)s%(reset)s %(message)s",
+        "%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(asctime)s%(reset)s %(white)s%(name)s%(reset)s [%(filename)s:%(lineno)d] %(message)s",
         datefmt=None,
         reset=True,
         log_colors={
