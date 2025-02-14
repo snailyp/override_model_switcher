@@ -2,28 +2,55 @@
 
 ## 项目简介
 
-override_model_switcher是一个用于管理和切换 OpenAI API 配置的工具。它允许用户上传、管理多个 API 渠道的配置，并在不同的渠道和模型之间进行切换。该工具提供了一个 Web 界面和 API 接口，方便用户进行操作。
+override_model_switcher是一个强大的OpenAI API配置管理工具。它提供了一个直观的Web界面和完整的API接口，让用户能够轻松管理多个API渠道配置，并在不同渠道和模型之间灵活切换。特别适合需要管理多个OpenAI API密钥或使用不同模型的用户。
 
 ## 主要功能
 
-1. 上传和管理 API 配置
-2. 批量上传渠道配置
-3. 切换当前使用的 API 渠道
-4. 选择和切换 AI 模型
-5. 提供 API 代理，支持流式和非流式响应
+1. **多渠道管理**
+   - 支持添加、删除和管理多个API渠道
+   - 提供批量导入渠道配置功能
+   - 实时切换不同渠道
+
+2. **模型管理**
+   - 自动获取可用模型列表
+   - 支持模型实时切换
+   - 支持模型可用性测试
+
+3. **API代理功能**
+   - 完整支持OpenAI聊天接口
+   - 支持流式响应和普通响应
+   - 自动消息合并优化（针对Claude等模型）
+
+4. **安全特性**
+   - API密钥认证
+   - CORS支持
+   - 错误处理和日志记录
 
 ## 技术栈
 
-- 后端：FastAPI
-- 前端：HTML, JavaScript, CSS
-- 数据存储：JSON 文件
-- 容器化：Docker
+- **后端框架**：
+  - FastAPI：高性能异步Web框架
+  - Uvicorn：ASGI服务器
+  - Pydantic：数据验证
+
+- **前端技术**：
+  - HTML + JavaScript + CSS
+  - Jinja2模板引擎
+
+- **网络处理**：
+  - HTTPX：异步HTTP客户端
+  - Starlette：CORS中间件
+
+- **其他组件**：
+  - python-dotenv：环境变量管理
+  - colorlog：日志美化
+  - SQLAlchemy：数据库支持（可选）
 
 ## 安装和运行
 
-### 使用 Docker
+### 使用Docker
 
-1. 构建 Docker 镜像：
+1. 构建镜像：
 
    ```bash
    docker build -t openai-api-manager .
@@ -49,48 +76,74 @@ override_model_switcher是一个用于管理和切换 OpenAI API 配置的工具
    python main.py
    ```
 
-访问 `http://localhost:8000` 即可使用 Web 界面。
+访问 `http://localhost:8000` 使用Web界面。
 
-## 配置
+## 配置说明
 
-- 在 `.env` 文件中设置默认的 API 配置。
+### 环境变量配置
 
-   ```plaintext
-   DEFAULT_BASE_URL=xxx #默认BASE_URL
-   DEFAULT_API_KEY=xxx #默认API_KEY,同时也用作调用override api接口的apikey，注意保存
-   DEFAULT_MODEL=gpt-4o #默认模型
-   CURRENT_CHANNEL=default #当前使用的渠道
-   ```
+在 `.env` 文件中设置：
 
-- 使用 `config.json` 文件存储和管理多个渠道的配置,格式如下,无需配置,项目自动生成。
+```plaintext
+DEFAULT_BASE_URL=xxx    # 默认API基础URL
+DEFAULT_API_KEY=xxx     # 默认API密钥（同时用作管理接口的认证密钥）
+DEFAULT_MODEL=gpt-4o    # 默认使用的模型
+CURRENT_CHANNEL=default # 默认渠道名称
+DATABASE_URL=mysql+pymysql://root:123456@host:port/model_switcher # 数据库连接信息
+```
 
-   ```json
-   {
-   "channels": {
-      "default": {
-         "base_url": "https://xxx",
-         "api_key": "sk-xxx",
-         "model": "gpt-4o"
-      }
-   },
-   "current_channel": "",
-   "current_model": "",
-   "api_key": ""
-   }
-   ```
+### 渠道配置文件
 
-## API 接口
+系统使用 `config.json` 存储渠道配置：
 
-- `/v1/chat/completions`：代理 OpenAI 的聊天完成接口
-- `/switch/override_model`：切换当前使用的模型
-- `/add_channel`：添加新的 API 渠道配置
-- `/bulk_add_channels`：批量添加 API 渠道配置
-- `/switch_channel`：切换当前使用的 API 渠道
-- 更多接口请参考 `app/routes.py` 文件
+```json
+{
+  "channels": {
+    "default": {
+      "base_url": "https://xxx",
+      "api_key": "sk-xxx",
+      "model": "gpt-4o"
+    }
+  },
+  "current_channel": "",
+  "current_model": "",
+  "api_key": ""
+}
+```
+
+## API接口说明
+
+### 基础接口
+
+- `GET /health_check`：服务健康检查
+- `GET /`：Web界面
+
+### 模型管理
+
+- `GET /v1/models`：获取可用模型列表
+- `POST /switch/override_model`：切换当前模型
+- `GET /export_models`：导出模型列表
+- `POST /test_all_models`：测试指定渠道的所有模型
+
+### 渠道管理
+
+- `GET /get_channels`：获取所有渠道列表
+- `POST /add_channel`：添加单个渠道
+- `POST /bulk_add_channels`：批量添加渠道
+- `DELETE /delete_channel/{channel_name}`：删除指定渠道
+- `POST /switch_channel`：切换当前渠道
+- `GET /export_channels`：导出所有渠道配置
+
+### OpenAI代理
+
+- `POST /v1/chat/completions`：代理OpenAI聊天接口
+  - 支持流式响应
+  - 自动消息合并
+  - 模型自动替换
 
 ## 许可证
 
-本项目采用 MIT 许可证。详情请见 [LICENSE](LICENSE) 文件。
+本项目采用MIT许可证。详情请见[LICENSE](LICENSE)文件。
 
 ## 作者
 
