@@ -1,94 +1,51 @@
-from http.client import HTTPException
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import (
-    PlainTextResponse,
-    StreamingResponse,
-    JSONResponse,
-    HTMLResponse,
-)
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
 from fastapi.security import APIKeyHeader
-from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+from typing import Dict, List
+import httpx
+import json
+
 from app.log_config import setup_logger
 from app.openai import (
-    fetch_models,
+    openai_client,
     get_allowed_models,
     get_api_key,
-    get_current_config,
     get_current_model,
 )
-import httpx
-from fastapi import HTTPException
-import json
-from starlette.status import HTTP_403_FORBIDDEN
-from typing import Dict, List
-from app.openai import config
+from app.config import ConfigManager, ChannelConfig
+from app.exceptions import (
+    InvalidRequestError,
+    AuthenticationError,
+    NotFoundError,
+    OpenAIError,
+)
 
-override_model = get_current_model()
 logger = setup_logger("routes")
-allowed_models = []
+config_manager = ConfigManager()
 router = APIRouter()
-# 创建 API 密钥头部验证器
 api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
 templates = Jinja2Templates(directory="templates")
 
-
-# 添加这个新的模型用于导出
-class ExportChannelInfo(BaseModel):
-    channel_name: str
-    base_url: str
-    api_key: str
-
-
-class OverrideModelRequest(BaseModel):
-    model: str
-
-
+# 数据模型
 class ChannelInfo(BaseModel):
     channel_name: str
     base_url: str
     api_key: str
 
+class OverrideModelRequest(BaseModel):
+    model: str
 
-async def switch_api_channel(channel_name):
-    global allowed_models
-    with open("config.json", "r+") as f:
-        config = json.load(f)
-        if channel_name in config["channels"]:
-            config["current_channel"] = channel_name
-            f.seek(0)
-            json.dump(config, f, indent=2)
-            f.truncate()
-            allowed_models = await get_allowed_models()
-            test_results = config["channels"][channel_name].get("test_results", {})
-            return {"success": True, "test_results": test_results}
+class ExportChannelInfo(BaseModel):
+    channel_name: str
+    base_url: str
+    api_key: str
 
-    return {"success": False, "message": "Invalid channel"}
-
-
-# 验证 API 密钥的函数
-async def verify_api_key(req_api_key: str = Depends(api_key_header)):
-    if req_api_key is None:
-        raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Missing API Key")
-
-    # 移除 "Bearer " 前缀（如果存在）
-    if req_api_key.startswith("Bearer "):
-        req_api_key = req_api_key[7:]
-
-    if req_api_key != get_api_key():
-        raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Invalid API Key")
-    return get_current_config()["api_key"]
-
-
-async def initialize_allowed_models():
-    global allowed_models
-    allowed_models = await get_allowed_models()
-
-
+# 辅助函数
 def merge_consecutive_messages(messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
     if not messages:
         return []
-
     merged_messages = [messages[0]]
     for msg in messages[1:]:
         if msg["role"] == merged_messages[-1]["role"]:
@@ -97,289 +54,236 @@ def merge_consecutive_messages(messages: List[Dict[str, str]]) -> List[Dict[str,
             merged_messages.append(msg)
     return merged_messages
 
+# 认证依赖
+async def verify_api_key(req_api_key: str = Depends(api_key_header)):
+    if req_api_key is None:
+        raise AuthenticationError("缺少API密钥")
+    if req_api_key.startswith("Bearer "):
+        req_api_key = req_api_key[7:]
+    if req_api_key != get_api_key():
+        raise AuthenticationError("无效的API密钥")
+    return get_api_key()
 
+# 初始化函数
+async def initialize_allowed_models():
+    return await get_allowed_models()
+
+# 路由处理
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    models = allowed_models
+    models = await get_allowed_models()
     return templates.TemplateResponse(
         "index.html",
         {
             "request": request,
             "models": models,
-            "current_model": config()["current_model"],
-            "current_channel": config()["current_channel"],
+            "current_model": get_current_model(),
+            "current_channel": config_manager.config.current_channel,
         },
     )
 
-
 @router.get("/health_check")
 async def health_check():
-    return {"status": "healthy", "message": "Service is running"}
-
+    return {"status": "healthy", "message": "服务正在运行"}
 
 @router.get("/v1/models")
 async def list_models():
-    return await fetch_models()
-
+    return await openai_client.fetch_models()
 
 @router.post("/switch/override_model")
 async def switch_override_model(request: OverrideModelRequest):
-    global override_model
-
+    allowed_models = await get_allowed_models()
     if request.model not in allowed_models:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid model. Allowed models are: {', '.join(allowed_models)}",
-        )
-
-    override_model = request.model
-    with open("config.json", "r+") as f:
-        config = json.load(f)
-        config["current_model"] = request.model
-        f.seek(0)
-        json.dump(config, f, indent=2)
-        f.truncate()
-    logger.info(f"OVERRIDE_MODEL switched to: {override_model}")
-    return {"message": f"OVERRIDE_MODEL successfully switched to {override_model}"}
-
+        raise InvalidRequestError(f"无效的模型。允许的模型有: {', '.join(allowed_models)}")
+    
+    openai_client.update_current_model(request.model)
+    logger.info(f"已切换到模型: {request.model}")
+    return {"message": f"成功切换到模型 {request.model}"}
 
 @router.post("/v1/chat/completions")
 async def chat_completions(request: Request, api_key: str = Depends(verify_api_key)):
     try:
         body = await request.body()
         if not body:
-            raise HTTPException(status_code=400, detail="Request body is empty")
+            raise InvalidRequestError("请求体为空")
 
         try:
             body = json.loads(body)
-            logger.info(f"Request body: {body}")
         except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid JSON in request body")
+            raise InvalidRequestError("无效的JSON格式")
 
+        current_config = config_manager.get_current_channel_config()
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
 
-        if body["model"] == "override" and override_model:
-            body["model"] = override_model
+        if body["model"] == "override":
+            body["model"] = get_current_model()
 
-        if (
-            "c35s" in body["model"]
-            or "c3o" in body["model"]
-            or "claude" in body["model"]
-        ):
+        if any(model_type in body["model"] for model_type in ["c35s", "c3o", "claude"]):
             messages = body.get("messages", [])
-            messages = merge_consecutive_messages(messages)
-            body["messages"] = messages
+            body["messages"] = merge_consecutive_messages(messages)
+
         stream = body.get("stream", False)
+        
         async def event_stream():
             try:
                 timeout = httpx.Timeout(timeout=10, read=120)
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     async with client.stream(
                         "POST",
-                        f"{get_current_config()['base_url']}/v1/chat/completions",
+                        f"{current_config.base_url}/v1/chat/completions",
                         json=body,
                         headers=headers,
                     ) as response:
                         if response.status_code != 200:
-                            logger.warning(
-                                f"API key {api_key} failed with status {response.status_code}"
-                            )
-                            yield f"data: {json.dumps({'error': 'API request failed'})}\n\n"
+                            logger.warning(f"API请求失败，状态码: {response.status_code}")
+                            yield f"data: {json.dumps({'error': 'API请求失败'})}\n\n"
                             return
                         async for line in response.aiter_lines():
                             if line:
                                 yield f"{line}\n\n"
             except Exception as e:
-                logger.error(f"Error in event stream: {str(e)}")
-                yield f"data: {json.dumps({'error': 'Stream processing error'})}\n\n"
+                logger.error(f"流处理错误: {str(e)}")
+                yield f"data: {json.dumps({'error': '流处理错误'})}\n\n"
 
         if stream:
             return StreamingResponse(event_stream(), media_type="text/event-stream")
-        else:
-            # 非流式处理逻辑
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(timeout=10, read=120)
-            ) as client:
-                response = await client.post(
-                    f"{get_current_config()['base_url']}/v1/chat/completions",
-                    json=body,
-                    headers=headers,
-                )
-
-            return JSONResponse(
-                content=response.json(), status_code=response.status_code
+        
+        async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=10, read=120)) as client:
+            response = await client.post(
+                f"{current_config.base_url}/v1/chat/completions",
+                json=body,
+                headers=headers,
             )
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON in request body")
-    except httpx.RequestError as e:
-        logger.error(f"Error proxying request to OpenAI: {str(e)}")
-        raise HTTPException(status_code=502, detail="Error proxying request to OpenAI")
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+            
     except Exception as e:
-        logger.error(f"Unexpected error in chat_completions: {str(e)}")
-        raise HTTPException(status_code=500, detail="An unexpected error occurred")
-
+        logger.error(f"处理聊天完成请求时出错: {str(e)}")
+        raise OpenAIError(str(e))
 
 @router.get("/get_channels", response_model=List[str])
 async def get_channels():
-    return list(config()["channels"].keys())
-
+    return list(config_manager.config.channels.keys())
 
 @router.get("/get_channel_config/{channel_name}")
 async def get_channel_config(channel_name: str):
-    if channel_name in config()["channels"]:
-        return config()["channels"][channel_name]
-    raise HTTPException(status_code=404, detail="Channel not found")
-
+    if channel_name not in config_manager.config.channels:
+        raise NotFoundError(f"通道 {channel_name} 不存在")
+    return config_manager.config.channels[channel_name]
 
 @router.delete("/delete_channel/{channel_name}")
 async def delete_channel(channel_name: str):
-    current_config = config()
-    global override_model
-    if channel_name not in current_config["channels"]:
-        raise HTTPException(status_code=404, detail="Channel not found")
-
+    if channel_name not in config_manager.config.channels:
+        raise NotFoundError(f"通道 {channel_name} 不存在")
     if channel_name == "default":
-        raise HTTPException(status_code=400, detail="Cannot delete the default channel")
-    if channel_name == current_config["current_channel"]:
-        current_config["current_channel"] = "default"
-        current_config["current_model"] = "gpt-4o"
-        override_model = "gpt-4o"
-
-    del current_config["channels"][channel_name]
-
-    # 保存更新后的配置
-    with open("config.json", "w") as f:
-        json.dump(current_config, f, indent=2)
-
-    return {"message": f"Channel {channel_name} deleted successfully"}
-
+        raise InvalidRequestError("不能删除默认通道")
+    
+    if channel_name == config_manager.config.current_channel:
+        config_manager.update_current_channel("default")
+        openai_client.update_current_model("gpt-4o")
+    
+    channels = config_manager.config.channels
+    del channels[channel_name]
+    config_manager.save_config()
+    
+    return {"message": f"成功删除通道 {channel_name}"}
 
 @router.post("/add_channel")
-async def add_channel(request: Request):
-    data = await request.json()
-    channel_name = data.get("channel_name")
-    base_url = data.get("base_url")
-    api_key = data.get("api_key")
-
-    if not all([channel_name, base_url, api_key]):
-        raise HTTPException(status_code=400, detail="Missing required fields")
-
-    if channel_name in config()["channels"]:
-        raise HTTPException(status_code=400, detail="Channel already exists")
-    current_config = config()
-    current_config["channels"][channel_name] = {
-        "base_url": base_url,
-        "api_key": api_key,
-    }
-
-    # 保存更新后的配置
-    with open("config.json", "w") as f:
-        f.seek(0)
-        json.dump(current_config, f, indent=2)
-        f.truncate()
-
-    return {"message": f"Channel {channel_name} added successfully"}
-
+async def add_channel(channel_info: ChannelInfo):
+    if channel_info.channel_name in config_manager.config.channels:
+        raise InvalidRequestError("通道已存在")
+    
+    config_manager.config.channels[channel_info.channel_name] = ChannelConfig(
+        base_url=channel_info.base_url,
+        api_key=channel_info.api_key
+    )
+    config_manager.save_config()
+    
+    return {"message": f"成功添加通道 {channel_info.channel_name}"}
 
 @router.post("/bulk_add_channels")
 async def bulk_add_channels(channels: List[ChannelInfo]):
-    current_config = config()
     added_channels = []
     existing_channels = []
-
+    
     for channel in channels:
-        if channel.channel_name not in current_config["channels"]:
-            current_config["channels"][channel.channel_name] = {
-                "base_url": channel.base_url,
-                "api_key": channel.api_key,
-            }
+        if channel.channel_name not in config_manager.config.channels:
+            config_manager.config.channels[channel.channel_name] = ChannelConfig(
+                base_url=channel.base_url,
+                api_key=channel.api_key
+            )
             added_channels.append(channel.channel_name)
         else:
             existing_channels.append(channel.channel_name)
-
-    # 保存更新后的配置
-    with open("config.json", "w") as f:
-        json.dump(current_config, f, indent=2)
-
+    
+    config_manager.save_config()
+    
     return {
-        "message": f"Added {len(added_channels)} channels successfully",
+        "message": f"成功添加 {len(added_channels)} 个通道",
         "added_channels": added_channels,
         "existing_channels": existing_channels,
     }
 
-
 @router.post("/switch_channel")
 async def switch_channel(request: Request):
-    data = await request.json()
-    channel = data.get("channel")
-    switch_result = await switch_api_channel(channel)
-    if switch_result["success"]:
-        return JSONResponse(
-            {
-                "success": True,
-                "message": f"Switched to channel {channel}",
-                "data": switch_result["test_results"],
-            },
-        )
-    return JSONResponse(
-        {"success": False, "message": "Invalid channel"}, status_code=400
-    )
-
+    try:
+        body = await request.json()
+        channel_name = body.get("channel_name")
+        
+        if not channel_name:
+            raise InvalidRequestError("缺少 channel_name 参数")
+            
+        if channel_name not in config_manager.config.channels:
+            raise NotFoundError(f"通道 {channel_name} 不存在")
+            
+        config_manager.update_current_channel(channel_name)
+        return JSONResponse({
+            "success": True,
+            "message": f"已切换到通道 {channel_name}",
+        })
+    except json.JSONDecodeError:
+        raise InvalidRequestError("无效的JSON格式")
+    except Exception as e:
+        raise InvalidRequestError(str(e))
 
 @router.get("/export_channels", response_model=List[ExportChannelInfo])
 async def export_channels(api_key: str = Depends(verify_api_key)):
-    current_config = config()
-    channels = current_config["channels"]
-
+    channels = config_manager.config.channels
     export_data = [
         ExportChannelInfo(
-            channel_name=name, base_url=info["base_url"], api_key=info["api_key"]
+            channel_name=name,
+            base_url=info.base_url,
+            api_key=info.api_key
         )
         for name, info in channels.items()
     ]
+    return JSONResponse(content=[channel.model_dump() for channel in export_data])
 
-    return JSONResponse(content=[channel.dict() for channel in export_data])
-
-
-@router.get("/export_models", response_class=PlainTextResponse)
+@router.get("/export_models")
 async def export_models():
     models = await get_allowed_models()
-    models_str = ",".join(models)
-    return models_str
-
+    return ",".join(models)
 
 @router.post("/test_all_models")
-async def test_all_models(request: Request):
-    data = await request.json()
-    channel = data.get("channel")
-
-    # 检查渠道是否存在
-    current_config = config()
-    if channel not in current_config["channels"]:
-        return JSONResponse(
-            {"success": False, "message": "Invalid channel"}, status_code=400
-        )
-
-    # 获取渠道配置信息
-    channel_config = current_config["channels"][channel]
+async def test_all_models(channel_name: str):
+    if channel_name not in config_manager.config.channels:
+        raise NotFoundError(f"通道 {channel_name} 不存在")
+    
+    channel_config = config_manager.config.channels[channel_name]
     headers = {
-        "Authorization": f"Bearer {channel_config['api_key']}",
+        "Authorization": f"Bearer {channel_config.api_key}",
         "Content-Type": "application/json",
     }
-
-    # 假设我们获取模型列表的 API
-    models_response = await fetch_models()
+    
+    models_response = await openai_client.fetch_models()
     if not models_response:
-        return JSONResponse(
-            {"success": False, "message": "Failed to fetch models"}, status_code=500
-        )
-
+        raise OpenAIError("获取模型列表失败")
+    
     models = models_response["data"]
     test_results = {}
-
+    
     async with httpx.AsyncClient() as client:
         for model in models:
             body = {
@@ -387,11 +291,11 @@ async def test_all_models(request: Request):
                 "messages": [{"role": "user", "content": "hi"}],
                 "stream": True,
             }
-
+            
             try:
                 async with client.stream(
                     "POST",
-                    f"{channel_config['base_url']}/v1/chat/completions",
+                        f"{channel_config.base_url}/v1/chat/completions",
                     json=body,
                     headers=headers,
                 ) as response:
@@ -401,59 +305,39 @@ async def test_all_models(request: Request):
                                 test_results[model["id"]] = "success"
                                 break
                     else:
-                        test_results[model["id"]] = (
-                            f"failed: HTTP {response.status_code}"
-                        )
+                        test_results[model["id"]] = f"failed: HTTP {response.status_code}"
             except Exception as e:
                 test_results[model["id"]] = f"failed: {str(e)}"
-
-    # 保存测试结果到 config.json
-    current_config["channels"][channel]["test_results"] = test_results
-    with open("config.json", "w") as f:
-        json.dump(current_config, f, indent=2)
-
-    return JSONResponse(
-        {
-            "success": True,
-            "message": f"Test results for channel {channel}",
-            "results": test_results,
-        }
-    )
-
+    
+    # 由于test_results不是ChannelConfig的一部分，我们需要将其存储在其他地方
+    # 或者暂时移除这个功能，因为它不符合ChannelConfig的数据模型
+    # TODO: 考虑创建一个单独的存储来保存测试结果
+    config_manager.save_config()
+    
+    return JSONResponse({
+        "success": True,
+        "message": f"通道 {channel_name} 的测试结果",
+        "results": test_results,
+    })
 
 @router.get("/wallpaper")
 async def get_wallpaper():
     wallpaper_api_url = "https://api.suyanw.cn/api/comic/api.php"
-
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(wallpaper_api_url, follow_redirects=True)
-
+            
         if response.status_code == 200:
-            # 获取最终重定向后的URL
             final_url = str(response.url)
-
-            # 创建一个新的请求来获取实际的图片内容
             async with httpx.AsyncClient() as client:
                 img_response = await client.get(final_url)
-
+                
             if img_response.status_code == 200:
-                # 返回图片内容，而不是重定向
                 return StreamingResponse(
                     img_response.iter_bytes(),
                     media_type=img_response.headers.get("content-type"),
                 )
-            else:
-                raise HTTPException(
-                    status_code=img_response.status_code,
-                    detail="Failed to fetch image content",
-                )
-        else:
-            raise HTTPException(
-                status_code=response.status_code, detail="Failed to fetch wallpaper URL"
-            )
-
+            raise OpenAIError("获取图片内容失败")
+        raise OpenAIError("获取壁纸URL失败")
     except httpx.RequestError as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching wallpaper: {str(e)}"
-        )
+        raise OpenAIError(f"获取壁纸失败: {str(e)}")

@@ -7,3 +7,6 @@ Requests
 starlette
 uvicorn
 jinja2
+SQLAlchemy
+pymysql
+cryptography

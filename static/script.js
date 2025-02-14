@@ -276,7 +276,7 @@ document.addEventListener("DOMContentLoaded", function () {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ channel: selectedChannel }),
+        body: JSON.stringify({ channel_name: selectedChannel }),
       });
 
       // const res = await response.json();
