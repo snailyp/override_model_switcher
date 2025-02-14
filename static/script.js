@@ -279,10 +279,8 @@ document.addEventListener("DOMContentLoaded", function () {
         body: JSON.stringify({ channel_name: selectedChannel }),
       });
 
-      // const res = await response.json();
       if (response.ok) {
         showMessage(`已切换到渠道: ${selectedChannel}`, "success");
-        // showMessage(`已切换到渠道: ${selectedChannel}\n可以用的模型:${res["test_results"]}`, "success");
         fetchModels(); // 刷新模型列表
       } else {
         showMessage(`切换失败: ${errorData.detail}`, "error");

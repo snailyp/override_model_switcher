@@ -62,7 +62,7 @@ async def verify_api_key(req_api_key: str = Depends(api_key_header)):
         req_api_key = req_api_key[7:]
     if req_api_key != get_api_key():
         raise AuthenticationError("无效的API密钥")
-    return get_api_key()
+    return config_manager.get_current_channel_config().api_key
 
 # 初始化函数
 async def initialize_allowed_models():
