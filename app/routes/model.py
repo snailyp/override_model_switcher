@@ -11,6 +11,10 @@ async def initialize_allowed_models():
 logger = setup_logger("model")
 router = APIRouter()
 
+@router.get("/get_current_model")
+async def get_current_model():
+    return {"current_model": openai_client.get_current_model()}
+
 @router.post("/switch/override_model")
 async def switch_override_model(request: OverrideModelRequest):
     allowed_models = await get_allowed_models()

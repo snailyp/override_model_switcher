@@ -16,6 +16,12 @@ logger = setup_logger("channel")
 config_manager = ConfigManager()
 router = APIRouter()
 
+@router.get("/get_current_channel")
+async def get_current_channel():
+    return {
+        "current_channel": config_manager.config.current_channel,
+    }
+
 @router.get("/get_channels", response_model=List[str])
 async def get_channels():
     return list(config_manager.config.channels.keys())

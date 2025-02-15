@@ -1,74 +1,112 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import requests
+from typing import Optional
 
 BASE_URL = "http://localhost:8000"
-
 
 class ModelSwitcher:
     def __init__(self, root):
         self.root = root
-        self.root.title("API 配置和模型切换工具")
-        self.root.geometry("400x500")
-
+        self.root.title("API 通道和模型切换工具")
+        self.root.geometry("500x600")
+        
+        # 当前状态
+        self.current_channel: Optional[str] = None
+        self.current_model: Optional[str] = None
+        
         self.create_widgets()
-        self.fetch_channels()
-        self.fetch_models()
+        self.refresh_status()
 
     def create_widgets(self):
+        # 状态显示区域
+        status_frame = ttk.LabelFrame(self.root, text="当前状态", padding=10)
+        status_frame.pack(fill="x", padx=10, pady=5)
+        
+        self.current_channel_label = ttk.Label(status_frame, text="当前通道: 加载中...")
+        self.current_channel_label.pack(anchor="w")
+        
+        self.current_model_label = ttk.Label(status_frame, text="当前模型: 加载中...")
+        self.current_model_label.pack(anchor="w")
+
         # 配置上传部分
-        ttk.Label(self.root, text="上传 API 配置").pack(pady=10)
+        config_frame = ttk.LabelFrame(self.root, text="添加新通道", padding=10)
+        config_frame.pack(fill="x", padx=10, pady=5)
 
         # 渠道名称
-        channel_frame = ttk.Frame(self.root)
-        channel_frame.pack(fill="x", padx=10)
-        ttk.Label(channel_frame, text="渠道名称:").pack(side="left")
-        self.channel_name = ttk.Entry(channel_frame, width=30)
-        self.channel_name.pack(side="right", expand=True)
+        ttk.Label(config_frame, text="通道名称:").pack(anchor="w")
+        self.channel_name = ttk.Entry(config_frame, width=40)
+        self.channel_name.pack(fill="x", pady=2)
 
         # Base URL
-        base_url_frame = ttk.Frame(self.root)
-        base_url_frame.pack(fill="x", padx=10, pady=5)
-        ttk.Label(base_url_frame, text="Base URL:").pack(side="left")
-        self.base_url = ttk.Entry(base_url_frame, width=30)
-        self.base_url.pack(side="right", expand=True)
+        ttk.Label(config_frame, text="Base URL:").pack(anchor="w")
+        self.base_url = ttk.Entry(config_frame, width=40)
+        self.base_url.pack(fill="x", pady=2)
 
         # API Key
-        api_key_frame = ttk.Frame(self.root)
-        api_key_frame.pack(fill="x", padx=10)
-        ttk.Label(api_key_frame, text="API Key:").pack(side="left")
-        self.api_key = ttk.Entry(api_key_frame, width=30)
-        self.api_key.pack(side="right", expand=True)
+        ttk.Label(config_frame, text="API Key:").pack(anchor="w")
+        self.api_key = ttk.Entry(config_frame, width=40)
+        self.api_key.pack(fill="x", pady=2)
 
-        ttk.Button(self.root, text="上传配置", command=self.upload_config).pack(pady=10)
+        ttk.Button(config_frame, text="添加通道", command=self.upload_config).pack(pady=5)
 
-        # 渠道选择部分
-        ttk.Label(self.root, text="选择渠道").pack(pady=10)
-        self.channel_select = ttk.Combobox(self.root, width=30)
-        self.channel_select.pack()
+        # 通道切换部分
+        channel_frame = ttk.LabelFrame(self.root, text="切换通道", padding=10)
+        channel_frame.pack(fill="x", padx=10, pady=5)
+        
+        self.channel_select = ttk.Combobox(channel_frame, width=38)
+        self.channel_select.pack(side="left", padx=5)
+        
+        ttk.Button(channel_frame, text="切换", command=self.switch_channel).pack(side="left", padx=5)
+        ttk.Button(channel_frame, text="刷新", command=self.fetch_channels).pack(side="left", padx=5)
 
-        ttk.Button(self.root, text="切换渠道", command=self.switch_channel).pack(
-            pady=10
-        )
+        # 模型切换部分
+        model_frame = ttk.LabelFrame(self.root, text="切换模型", padding=10)
+        model_frame.pack(fill="x", padx=10, pady=5)
+        
+        self.model_select = ttk.Combobox(model_frame, width=38)
+        self.model_select.pack(side="left", padx=5)
+        
+        ttk.Button(model_frame, text="切换", command=self.switch_model).pack(side="left", padx=5)
+        ttk.Button(model_frame, text="刷新", command=self.fetch_models).pack(side="left", padx=5)
 
-        # 模型选择部分
-        ttk.Label(self.root, text="选择要切换的模型").pack(pady=10)
-        self.model_select = ttk.Combobox(self.root, width=30)
-        self.model_select.pack()
+        # 操作按钮
+        button_frame = ttk.Frame(self.root)
+        button_frame.pack(fill="x", padx=10, pady=5)
+        
+        ttk.Button(button_frame, text="刷新状态", command=self.refresh_status).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="测试当前通道", command=self.test_current_channel).pack(side="left")
 
-        ttk.Button(self.root, text="切换模型", command=self.switch_model).pack(pady=10)
-
-        # 消息显示
-        self.message = tk.StringVar()
-        ttk.Label(self.root, textvariable=self.message).pack(pady=10)
+    def refresh_status(self):
+        """刷新当前状态显示"""
+        try:
+            # 获取当前通道
+            response = requests.get(f"{BASE_URL}/get_current_channel")
+            if response.ok:
+                self.current_channel = response.json()["current_channel"]
+                self.current_channel_label.config(text=f"当前通道: {self.current_channel}")
+            
+            # 获取当前模型
+            response = requests.get(f"{BASE_URL}/get_current_model")
+            if response.ok:
+                self.current_model = response.json()["current_model"]
+                self.current_model_label.config(text=f"当前模型: {self.current_model}")
+            
+            # 刷新通道和模型列表
+            self.fetch_channels()
+            self.fetch_models()
+            
+        except requests.RequestException as e:
+            self.show_error(f"刷新状态失败: {str(e)}")
 
     def upload_config(self):
-        channel_name = self.channel_name.get()
-        base_url = self.base_url.get()
-        api_key = self.api_key.get()
+        """上传新通道配置"""
+        channel_name = self.channel_name.get().strip()
+        base_url = self.base_url.get().strip()
+        api_key = self.api_key.get().strip()
 
-        if not channel_name or not base_url or not api_key:
-            self.show_message("请填写所有字段", "error")
+        if not all([channel_name, base_url, api_key]):
+            self.show_error("请填写所有字段")
             return
 
         try:
@@ -81,69 +119,116 @@ class ModelSwitcher:
                 },
             )
             if response.ok:
-                self.show_message("配置上传成功", "success")
+                self.show_success("通道添加成功")
                 self.fetch_channels()
+                # 清空输入框
+                self.channel_name.delete(0, tk.END)
+                self.base_url.delete(0, tk.END)
+                self.api_key.delete(0, tk.END)
             else:
-                self.show_message("配置上传失败", "error")
-        except requests.RequestException:
-            self.show_message("上传配置时发生错误", "error")
+                self.show_error(f"添加失败: {response.json().get('detail', '')}")
+        except requests.RequestException as e:
+            self.show_error(f"添加失败: {str(e)}")
 
     def switch_channel(self):
+        """切换通道"""
         selected_channel = self.channel_select.get()
+        if not selected_channel:
+            self.show_error("请选择要切换的通道")
+            return
+
         try:
             response = requests.post(
-                f"{BASE_URL}/switch_channel", json={"channel": selected_channel}
+                f"{BASE_URL}/switch_channel",
+                json={"channel_name": selected_channel}
             )
             if response.ok:
-                self.show_message(f"已切换到渠道: {selected_channel}", "success")
-                self.fetch_models()
+                self.show_success(f"已切换到通道: {selected_channel}")
+                self.refresh_status()
             else:
-                self.show_message("切换渠道失败", "error")
-        except requests.RequestException:
-            self.show_message("切换渠道时发生错误", "error")
+                self.show_error(f"切换失败: {response.json().get('detail', '')}")
+        except requests.RequestException as e:
+            self.show_error(f"切换失败: {str(e)}")
 
     def switch_model(self):
+        """切换模型"""
         selected_model = self.model_select.get()
+        if not selected_model:
+            self.show_error("请选择要切换的模型")
+            return
+
         try:
             response = requests.post(
-                f"{BASE_URL}/switch/override_models", json={"model": selected_model}
+                f"{BASE_URL}/switch/override_model",
+                json={"model": selected_model}
             )
             if response.ok:
-                self.show_message(f"模型已切换为: {selected_model}", "success")
+                self.show_success(f"已切换到模型: {selected_model}")
+                self.refresh_status()
             else:
-                error_data = response.json()
-                self.show_message(f"切换失败: {error_data.get('detail', '')}", "error")
-        except requests.RequestException:
-            self.show_message("切换模型时发生错误", "error")
+                self.show_error(f"切换失败: {response.json().get('detail', '')}")
+        except requests.RequestException as e:
+            self.show_error(f"切换失败: {str(e)}")
 
     def fetch_channels(self):
+        """获取通道列表"""
         try:
             response = requests.get(f"{BASE_URL}/get_channels")
             if response.ok:
                 channels = response.json()
                 self.channel_select["values"] = channels
-            else:
-                self.show_message("获取渠道列表失败", "error")
-        except requests.RequestException:
-            self.show_message("获取渠道列表时发生错误", "error")
+                if self.current_channel in channels:
+                    self.channel_select.set(self.current_channel)
+        except requests.RequestException as e:
+            self.show_error(f"获取通道列表失败: {str(e)}")
 
     def fetch_models(self):
+        """获取模型列表"""
         try:
             response = requests.get(f"{BASE_URL}/v1/models")
             if response.ok:
-                data = response.json()
-                models = [model["id"] for model in data["data"]]
+                models = [model["id"] for model in response.json()["data"]]
                 self.model_select["values"] = models
+                if self.current_model in models:
+                    self.model_select.set(self.current_model)
+        except requests.RequestException as e:
+            self.show_error(f"获取模型列表失败: {str(e)}")
+
+    def test_current_channel(self):
+        """测试当前通道"""
+        if not self.current_channel:
+            self.show_error("没有选择通道")
+            return
+
+        try:
+            response = requests.post(f"{BASE_URL}/test_all_models", params={"channel_name": self.current_channel})
+            if response.ok:
+                results = response.json()["results"]
+                self.show_test_results(results)
             else:
-                self.show_message("获取模型列表失败", "error")
-        except requests.RequestException:
-            self.show_message("获取模型列表时发生错误", "error")
+                self.show_error(f"测试失败: {response.json().get('detail', '')}")
+        except requests.RequestException as e:
+            self.show_error(f"测试失败: {str(e)}")
 
-    def show_message(self, text, type):
-        self.message.set(text)
-        color = "red" if type == "error" else "green"
-        self.root.update()
+    def show_test_results(self, results):
+        """显示测试结果"""
+        result_window = tk.Toplevel(self.root)
+        result_window.title("测试结果")
+        result_window.geometry("400x300")
 
+        text = tk.Text(result_window, wrap=tk.WORD)
+        text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        for model, status in results.items():
+            text.insert(tk.END, f"{model}: {status}\n")
+        
+        text.config(state=tk.DISABLED)
+
+    def show_error(self, message):
+        messagebox.showerror("错误", message)
+
+    def show_success(self, message):
+        messagebox.showinfo("成功", message)
 
 if __name__ == "__main__":
     root = tk.Tk()
