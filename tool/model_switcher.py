@@ -70,6 +70,7 @@ class ModelSwitcher:
         
         ttk.Button(model_frame, text="切换", command=self.switch_model).pack(side="left", padx=5)
         ttk.Button(model_frame, text="刷新", command=self.fetch_models).pack(side="left", padx=5)
+        ttk.Button(model_frame, text="测试模型", command=self.test_current_model).pack(side="left", padx=5)
 
         # 操作按钮
         button_frame = ttk.Frame(self.root)
@@ -248,6 +249,29 @@ class ModelSwitcher:
                     self.show_error(f"删除失败: {response.json().get('detail', '')}")
             except requests.RequestException as e:
                 self.show_error(f"删除失败: {str(e)}")
+
+    def test_current_model(self):
+        """测试当前选择的模型"""
+        selected_model = self.model_select.get()
+        if not selected_model:
+            self.show_error("请选择要测试的模型")
+            return
+
+        try:
+            response = requests.post(
+                f"{BASE_URL}/test_model",
+                json={"model": selected_model}
+            )
+            if response.ok:
+                result = response.json()
+                if result.get("available"):
+                    self.show_success(f"模型 {selected_model} 可用: {result.get('message', '')}")
+                else:
+                    self.show_error(f"模型 {selected_model} 不可用: {result.get('message', '未知原因')}")
+            else:
+                self.show_error(f"测试失败: {response.json().get('detail', '')}")
+        except requests.RequestException as e:
+            self.show_error(f"测试失败: {str(e)}")
 
     def show_success(self, message):
         messagebox.showinfo("成功", message)

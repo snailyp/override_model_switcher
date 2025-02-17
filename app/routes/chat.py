@@ -7,6 +7,7 @@ from typing import Dict, List
 from app.log_config import setup_logger
 from app.openai import get_current_model
 from app.exceptions import InvalidRequestError, OpenAIError
+from pydantic import BaseModel
 from .auth import verify_api_key
 from app.config import ConfigManager
 from app.openai import openai_client
@@ -15,6 +16,61 @@ from app.openai import openai_client
 logger = setup_logger("chat")
 config_manager = ConfigManager()
 router = APIRouter()
+
+class TestModelRequest(BaseModel):
+    model: str
+
+@router.post("/test_model")
+async def test_model(request: TestModelRequest):
+    try:
+        # 首先检查模型是否在可用列表中
+        models_response = await openai_client.fetch_models()
+        available_models = [model["id"] for model in models_response["data"]]
+        
+        if request.model not in available_models:
+            return {
+                "available": False,
+                "message": "模型不在可用列表中"
+            }
+        
+        # 进行实际的对话测试
+        current_config = config_manager.get_current_channel_config()
+        test_message = {
+            "model": request.model,
+            "messages": [{"role": "user", "content": "hi"}],
+            "max_tokens": 50
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {current_config.api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=10)) as client:
+            response = await client.post(
+                f"{current_config.base_url}/v1/chat/completions",
+                json=test_message,
+                headers=headers,
+            )
+            
+            if response.status_code == 200:
+                return {
+                    "available": True,
+                    "message": "模型可用，测试对话成功" + "\n" + response.text
+                }
+            else:
+                return {
+                    "available": False,
+                    "message": f"测试对话失败: {response.text}"
+                }
+                
+    except Exception as e:
+        logger.error(f"测试模型时出错: {str(e)}")
+        return {
+            "available": False,
+            "message": str(e)
+        }
+
 
 def merge_consecutive_messages(messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
     if not messages:
