@@ -9,7 +9,7 @@ class ModelSwitcher:
     def __init__(self, root):
         self.root = root
         self.root.title("API 通道和模型切换工具")
-        self.root.geometry("500x600")
+        self.root.geometry("700x600")
         
         # 当前状态
         self.current_channel: Optional[str] = None
@@ -59,6 +59,7 @@ class ModelSwitcher:
         
         ttk.Button(channel_frame, text="切换", command=self.switch_channel).pack(side="left", padx=5)
         ttk.Button(channel_frame, text="刷新", command=self.fetch_channels).pack(side="left", padx=5)
+        ttk.Button(channel_frame, text="删除", command=self.delete_channel).pack(side="left", padx=5)
 
         # 模型切换部分
         model_frame = ttk.LabelFrame(self.root, text="切换模型", padding=10)
@@ -226,6 +227,27 @@ class ModelSwitcher:
 
     def show_error(self, message):
         messagebox.showerror("错误", message)
+
+    def delete_channel(self):
+        """删除选中的通道"""
+        selected_channel = self.channel_select.get()
+        if not selected_channel:
+            self.show_error("请选择要删除的通道")
+            return
+
+        if messagebox.askyesno("确认", f"确定要删除通道 {selected_channel} 吗？"):
+            try:
+                response = requests.delete(
+                    f"{BASE_URL}/delete_channel",
+                    json={"channel_name": selected_channel}
+                )
+                if response.ok:
+                    self.show_success(f"已删除通道: {selected_channel}")
+                    self.refresh_status()
+                else:
+                    self.show_error(f"删除失败: {response.json().get('detail', '')}")
+            except requests.RequestException as e:
+                self.show_error(f"删除失败: {str(e)}")
 
     def show_success(self, message):
         messagebox.showinfo("成功", message)
