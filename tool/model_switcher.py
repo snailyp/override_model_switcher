@@ -239,8 +239,7 @@ class ModelSwitcher:
         if messagebox.askyesno("确认", f"确定要删除通道 {selected_channel} 吗？"):
             try:
                 response = requests.delete(
-                    f"{BASE_URL}/delete_channel",
-                    json={"channel_name": selected_channel}
+                    f"{BASE_URL}/delete_channel/{selected_channel}"
                 )
                 if response.ok:
                     self.show_success(f"已删除通道: {selected_channel}")
