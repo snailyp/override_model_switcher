@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>API 渠道管理和模型切换工具</title>
+    <meta name="description" content="管理API渠道和切换模型的工具">
+    <meta name="theme-color" content="#3498db">
+    
+    <!-- PWA 相关 -->
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
+    
     <script src="/static/script.js" defer></script>
     <link
       rel="stylesheet"
@@ -34,6 +41,16 @@
     <div class="container">
       <input type="hidden" id="currentChannel" value="{{ current_channel }}" />
       <input type="hidden" id="currentModel" value="{{ current_model }}" />
+      
+      <div id="status" class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-info-circle"></i> 当前状态</h2>
+        </div>
+        <div class="status-info">
+          <p id="currentChannelDisplay">当前通道: <span>{{ current_channel }}</span></p>
+          <p id="currentModelDisplay">当前模型: <span>{{ current_model }}</span></p>
+        </div>
+      </div>
 
       <div id="upload" class="card">
         <div class="card-header">
@@ -100,6 +117,9 @@
         <div class="button-group">
           <button id="switchButton">
             <i class="fas fa-sync"></i> 切换模型
+          </button>
+          <button id="testModelBtn">
+            <i class="fas fa-vial"></i> 测试模型
           </button>
           <button id="exportModelsBtn">
             <i class="fas fa-file-export"></i> 导出模型

@@ -121,6 +121,24 @@
   .card-header h2 {
     margin: 0;
   }
+  
+  .status-info {
+    padding: 10px;
+    margin-top: 10px;
+  }
+  
+  .status-info p {
+    margin: 5px 0;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .status-info p span {
+    font-weight: bold;
+    color: var(--primary-color);
+  }
 
   input,
   select,

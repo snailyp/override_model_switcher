@@ -1,4 +1,17 @@
 document.addEventListener("DOMContentLoaded", function () {
+  // 注册 Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/static/service-worker.js')
+        .then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        })
+        .catch(error => {
+          console.log('ServiceWorker registration failed: ', error);
+        });
+    });
+  }
+  
   changeBackground();
 
   const currentChannel = document.getElementById("currentChannel").value;
@@ -25,8 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
   );
   const exportChannelsButton = document.getElementById("exportChannelsButton");
   const exportModelsBtn = document.getElementById("exportModelsBtn");
-  // const testModelsBtn = document.getElementById("testModelsBtn");
-  // const testModelBtn = document.getElementById("testModelBtn");
+  const testModelBtn = document.getElementById("testModelBtn");
 
   opacityControlWrapper.addEventListener('mouseenter', function() {
     opacityControl.style.transform = 'translateX(0)';
@@ -37,8 +49,12 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   function showMessage(text, type) {
-    alertMessage.textContent = text;
+    alertMessage.innerHTML = text;
     alertMessage.style.color = type === "error" ? "#ff0000" : "#006600";
+    alertMessage.style.maxHeight = "300px";
+    alertMessage.style.overflow = "auto";
+    alertMessage.style.wordBreak = "break-word";
+    alertMessage.style.textAlign = "left";
     customAlert.style.display = "block";
   }
 
@@ -64,6 +80,9 @@ document.addEventListener("DOMContentLoaded", function () {
       modelSelect.value = currentModel;
     }
   });
+  
+  // 初始化当前状态显示
+  updateCurrentStatus();
 
   uploadConfigButton.addEventListener("click", uploadConfig);
   bulkUploadButton.addEventListener("click", bulkUploadConfig);
@@ -80,8 +99,48 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("scrollTopBtn")
     .addEventListener("click", scrollToTop);
   exportModelsBtn.addEventListener("click", exportModels);
-  // testModelsBtn.addEventListener("click", testModels);
-  // testModelBtn.addEventListener("click", testModel);
+  testModelBtn.addEventListener("click", testModel);
+
+  async function testModel() {
+    const selectedModel = document.getElementById("modelSelect").value;
+    
+    if (!selectedModel) {
+      showMessage("请选择要测试的模型", "error");
+      return;
+    }
+    
+    showLoader();
+    try {
+      const response = await fetch("/test_model", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ model: selectedModel }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.available) {
+          // 显示测试成功的消息和原始JSON
+          const jsonStr = JSON.stringify(data, null, 2);
+          showMessage(`<div>模型 ${selectedModel} 测试成功！✅</div><pre style="background-color:#f5f5f5;padding:10px;border-radius:5px;margin-top:10px;font-size:12px;">${jsonStr}</pre>`, "success");
+        } else {
+          // 显示测试失败的消息和原始JSON
+          const jsonStr = JSON.stringify(data, null, 2);
+          showMessage(`<div>模型 ${selectedModel} 测试失败 ❌</div><pre style="background-color:#f5f5f5;padding:10px;border-radius:5px;margin-top:10px;font-size:12px;">${jsonStr}</pre>`, "error");
+        }
+      } else {
+        const errorData = await response.json();
+        const jsonStr = JSON.stringify(errorData, null, 2);
+        showMessage(`<div>测试失败 ❌</div><pre style="background-color:#f5f5f5;padding:10px;border-radius:5px;margin-top:10px;font-size:12px;">${jsonStr}</pre>`, "error");
+      }
+    } catch (error) {
+      showMessage("测试模型时发生错误", "error");
+    } finally {
+      hideLoader();
+    }
+  }
 
   async function testModels() {
     const selectedChannel = document.getElementById("channelSelect").value;
@@ -259,6 +318,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showMessage(`已删除渠道: ${selectedChannel}`, "success");
         fetchChannels(); // 刷新渠道列表
         fetchModels(); //刷新模型列表
+        updateCurrentStatus(); // 更新当前状态显示
       } else {
         showMessage("删除渠道失败", "error");
       }
@@ -282,7 +342,9 @@ document.addEventListener("DOMContentLoaded", function () {
       if (response.ok) {
         showMessage(`已切换到渠道: ${selectedChannel}`, "success");
         fetchModels(); // 刷新模型列表
+        updateCurrentStatus(); // 更新当前状态显示
       } else {
+        const errorData = await response.json();
         showMessage(`切换失败: ${errorData.detail}`, "error");
       }
     } catch (error) {
@@ -305,6 +367,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (response.ok) {
         showMessage(`模型已切换为: ${selectedModel}`, "success");
+        updateCurrentStatus(); // 更新当前状态显示
       } else {
         const errorData = await response.json();
         showMessage(`切换失败: ${errorData.detail}`, "error");
@@ -313,6 +376,28 @@ document.addEventListener("DOMContentLoaded", function () {
       showMessage("切换模型时发生错误", "error");
     } finally {
       hideLoader();
+    }
+  }
+  
+  async function updateCurrentStatus() {
+    try {
+      // 获取当前通道
+      const channelResponse = await fetch("/get_current_channel");
+      if (channelResponse.ok) {
+        const channelData = await channelResponse.json();
+        document.getElementById("currentChannelDisplay").innerHTML = 
+          `当前通道: <span>${channelData.current_channel}</span>`;
+      }
+      
+      // 获取当前模型
+      const modelResponse = await fetch("/get_current_model");
+      if (modelResponse.ok) {
+        const modelData = await modelResponse.json();
+        document.getElementById("currentModelDisplay").innerHTML = 
+          `当前模型: <span>${modelData.current_model}</span>`;
+      }
+    } catch (error) {
+      console.error("更新状态显示失败:", error);
     }
   }
 
