@@ -24,10 +24,10 @@
     </header>
     <nav>
       <ul>
-        <li><a href="#upload">上传配置</a></li>
-        <li><a href="#bulk-upload">批量上传</a></li>
         <li><a href="#channel-management">渠道管理</a></li>
         <li><a href="#model-selection">模型选择</a></li>
+        <li><a href="#upload">上传配置</a></li>
+        <li><a href="#bulk-upload">批量上传</a></li>
       </ul>
     </nav>
     <div class="opacity-control-wrapper">
@@ -39,9 +39,6 @@
       </div>
     </div>
     <div class="container">
-      <input type="hidden" id="currentChannel" value="{{ current_channel }}" />
-      <input type="hidden" id="currentModel" value="{{ current_model }}" />
-      
       <div id="status" class="card">
         <div class="card-header">
           <h2><i class="fas fa-info-circle"></i> 当前状态</h2>
@@ -51,6 +48,45 @@
           <p id="currentModelDisplay">当前模型: <span>{{ current_model }}</span></p>
         </div>
       </div>
+      <input type="hidden" id="currentChannel" value="{{ current_channel }}" />
+      <input type="hidden" id="currentModel" value="{{ current_model }}" />
+      
+      <div id="channel-management" class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-cogs"></i> 渠道管理</h2>
+        </div>
+        <select id="channelSelect"></select>
+        <div class="button-group">
+          <button id="switchChannelButton">
+            <i class="fas fa-exchange-alt"></i> 切换渠道
+          </button>
+          <button id="deleteChannelButton">
+            <i class="fas fa-trash"></i> 删除渠道
+          </button>
+          <button id="exportChannelsButton">
+            <i class="fas fa-file-export"></i> 导出渠道
+          </button>
+        </div>
+      </div>
+
+      <div id="model-selection" class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-robot"></i> 模型选择</h2>
+        </div>
+        <select id="modelSelect"></select>
+        <div class="button-group">
+          <button id="switchButton">
+            <i class="fas fa-sync"></i> 切换模型
+          </button>
+          <button id="testModelBtn">
+            <i class="fas fa-vial"></i> 测试模型
+          </button>
+          <button id="exportModelsBtn">
+            <i class="fas fa-file-export"></i> 导出模型
+          </button>
+        </div>
+      </div>
+
 
       <div id="upload" class="card">
         <div class="card-header">
@@ -87,42 +123,6 @@
           </button>
           <button id="clearBulkUploadButton">
             <i class="fas fa-eraser"></i> 清空配置
-          </button>
-        </div>
-      </div>
-
-      <div id="channel-management" class="card">
-        <div class="card-header">
-          <h2><i class="fas fa-cogs"></i> 渠道管理</h2>
-        </div>
-        <select id="channelSelect"></select>
-        <div class="button-group">
-          <button id="switchChannelButton">
-            <i class="fas fa-exchange-alt"></i> 切换渠道
-          </button>
-          <button id="deleteChannelButton">
-            <i class="fas fa-trash"></i> 删除渠道
-          </button>
-          <button id="exportChannelsButton">
-            <i class="fas fa-file-export"></i> 导出渠道
-          </button>
-        </div>
-      </div>
-
-      <div id="model-selection" class="card">
-        <div class="card-header">
-          <h2><i class="fas fa-robot"></i> 模型选择</h2>
-        </div>
-        <select id="modelSelect"></select>
-        <div class="button-group">
-          <button id="switchButton">
-            <i class="fas fa-sync"></i> 切换模型
-          </button>
-          <button id="testModelBtn">
-            <i class="fas fa-vial"></i> 测试模型
-          </button>
-          <button id="exportModelsBtn">
-            <i class="fas fa-file-export"></i> 导出模型
           </button>
         </div>
       </div>
